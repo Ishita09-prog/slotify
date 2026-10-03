@@ -62,6 +62,8 @@ export interface LiveLot {
   features: string[];
   createdAt: number;
   rows: number;
+  /** optional per-lot override of the weekly/monthly base rate (defaults live in plans.ts) */
+  planRates?: { weekly?: number; monthly?: number };
 }
 
 /** A booking pinned on a bay (the bay document is the lock — every booking goes through a transaction on it). */
@@ -88,7 +90,15 @@ export interface Bay {
   open?: Occupant | null;
   /** timed bookings keyed by `${yyyymmdd}_${windowId}` */
   slots?: Record<string, Occupant>;
+  /** weekly / monthly leases keyed by booking id. Ranges are [startAt, endAt). */
+  plans?: Record<string, PlanLease>;
   updatedAt: number;
+}
+
+/** A weekly/monthly reservation pinned on a bay. endAt is exclusive (00:00 IST). */
+export interface PlanLease extends Occupant {
+  startAt: number;
+  endAt: number;
 }
 
 export type PayMethod = "fastag" | "upi" | "qr" | "card";
@@ -106,7 +116,20 @@ export interface LiveBooking {
   driverName: string;
   vehicle: string;
   vehicleType: VehicleType;
-  mode: "timed" | "open";
+  /** "plan" = weekly/monthly. Documents written before plans existed have no bookingType and are hourly. */
+  mode: "timed" | "open" | "plan";
+  bookingType?: "hourly" | "weekly" | "monthly";
+  /** plan: number of weeks / months */
+  duration?: number | null;
+  /** plan: total charged (also stored in `cover` so existing revenue sums include it) */
+  amount?: number | null;
+  planRate?: number | null;
+  planDiscountPct?: number | null;
+  /** plan: IST dates, yyyy-mm-dd (endDate is the exclusive end) */
+  startDate?: string | null;
+  endDate?: string | null;
+  /** plan: money returned on cancellation */
+  refunded?: number | null;
   /** timed: slot key + label */
   slotKey?: string | null;
   windowLabel?: string | null;

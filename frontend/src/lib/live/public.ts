@@ -64,7 +64,9 @@ function mergeBay(lot: LiveLot, s: Slot, real: Bay | undefined): Bay {
   };
   if (!real) return sim;
   const hasReal = !!real.open || (!!real.hold && real.hold.until > Date.now());
-  return hasReal ? { ...sim, hold: real.hold ?? null, open: real.open ?? null } : sim;
+  const merged = hasReal ? { ...sim, hold: real.hold ?? null, open: real.open ?? null } : sim;
+  // weekly / monthly leases live only in the database; the camera simulation never has them
+  return real.plans && Object.keys(real.plans).length ? { ...merged, plans: real.plans } : merged;
 }
 
 export function useDriverLots() {

@@ -15,7 +15,8 @@ import { Select } from "@/components/ui/select";
 import { LiveLegend } from "@/components/live/legend";
 import { useLive, useTick } from "@/lib/live/provider";
 import { addBays, ROW_LETTERS, setBayActive, updateLot, type BookingRequest } from "@/lib/live/service";
-import { bookableDays, fmtTime, windowRange } from "@/lib/live/time";
+import { bookableDays, fmtDate, fmtTime, windowRange } from "@/lib/live/time";
+import { planStatus } from "@/lib/live/plans";
 import { bayState, lotStats, toSlot } from "@/lib/live/view";
 import type { LiveLot } from "@/lib/live/types";
 import type { SlotType } from "@/lib/types";
@@ -53,7 +54,7 @@ function LotManage() {
   const selState = selected ? bayState(selected, lot, null, now, req) : null;
   const rows = [...new Set(bays.map((b) => b.row))].sort();
   const nextRow = ROW_LETTERS[rows.length] ?? "Z";
-  const lotBookings = live.bookings.filter((b) => b.lotId === lot.id && (b.status === "booked" || b.status === "parked"));
+  const lotBookings = live.bookings.filter((b) => b.lotId === lot.id && (b.status === "booked" || b.status === "parked") && !(b.mode === "plan" && planStatus(b, Date.now()) === "expired"));
   const dirty = JSON.stringify(draft) !== JSON.stringify(lot);
 
   const add = async () => {
@@ -179,7 +180,7 @@ function LotManage() {
               <ul className="mt-2 divide-y">
                 {lotBookings.map((b) => (
                   <li key={b.id} className="flex items-center justify-between gap-2 py-2 text-sm">
-                    <span><b className="font-display">{b.bayLabel}</b> · {b.vehicle}<span className="block text-xs text-muted-foreground">{b.driverName} · {b.mode === "timed" ? b.windowLabel : `no time limit, arriving ${fmtTime(b.startAt)}`}</span></span>
+                    <span><b className="font-display">{b.bayLabel}</b> · {b.vehicle}<span className="block text-xs text-muted-foreground">{b.driverName} · {b.mode === "plan" ? `${b.bookingType} plan until ${fmtDate(b.endAt ?? b.startAt)}` : b.mode === "timed" ? b.windowLabel : `no time limit, arriving ${fmtTime(b.startAt)}`}</span></span>
                     <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", b.status === "parked" ? "bg-status-occupied/15 text-status-occupied" : "bg-status-reserved/15 text-status-reserved")}>{b.status}</span>
                   </li>
                 ))}

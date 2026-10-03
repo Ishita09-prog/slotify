@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { loadAllModels } from "@/lib/ml/forecast";
+import { PlanBreakdown, PlanPicker } from "@/components/live/plan-picker";
+import { PLAN_MAX_LEAD_DAYS, PLAN_PRICING, quotePlan, type BookingType, type PlanQuote } from "@/lib/live/plans";
 import { AiAvailability } from "@/components/live/ai-availability";
 import { useLive, useTick } from "@/lib/live/provider";
 import { isPublic, useDriverLots } from "@/lib/live/public";
 import type { BookingRequest } from "@/lib/live/service";
-import { bookableDays, fmtTime, windowHours, windowRange } from "@/lib/live/time";
+import { bookableDays, fmtTime, istDateKey, windowHours, windowRange } from "@/lib/live/time";
 import { bayState, lotStats, toSlot } from "@/lib/live/view";
 import { COVER, VEHICLE_LABEL } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
@@ -38,6 +40,10 @@ function Park() {
   const [vehicleNo, setVehicleNo] = useState<string>("");
   const [sel, setSel] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  // booking type: "hourly" is the existing flow, untouched. weekly / monthly are the long-term plans.
+  const [btype, setBtype] = useState<BookingType>("hourly");
+  const [planUnits, setPlanUnits] = useState(1);
+  const [planStart, setPlanStart] = useState<string | null>(null);
   const [modelReady, setModelReady] = useState(false);
   useEffect(() => void loadAllModels().then(() => setModelReady(true)), []);
   const [target, setTarget] = useState<number>(() => Date.now() + Math.max(15, Number(params.get("in") ?? 0)) * 60_000);
@@ -52,7 +58,16 @@ function Park() {
   const days = bookableDays(now);
   const dayKey = day ?? days[0].key;
   const win = lot?.windows.find((w) => w.id === winId) ?? null;
-  const req: BookingRequest | null = mode === "open" ? { mode: "open" } : win ? { mode: "timed", dateKey: dayKey, window: win } : null;
+  const todayKey = istDateKey(now);
+  const startKey = planStart && planStart >= todayKey ? planStart : todayKey;
+  const planQuote: PlanQuote | null = useMemo(() => {
+    if (!lot || btype === "hourly") return null;
+    try { return quotePlan(lot, { type: btype, units: planUnits, startKey }); } catch { return null; }
+  }, [lot, btype, planUnits, startKey]);
+  const req: BookingRequest | null =
+    btype !== "hourly"
+      ? planQuote ? { mode: "plan", plan: { type: btype, units: planUnits, startKey } } : null
+      : mode === "open" ? { mode: "open" } : win ? { mode: "timed", dateKey: dayKey, window: win } : null;
   const evNeed = useMemo(() => ({ ev: params.get("ev") === "1" }), [params]);
   useEffect(() => {
     if (win) setTarget(windowRange(dayKey, win).start);
@@ -93,7 +108,7 @@ function Park() {
         <div className="flex items-center gap-3">
           <div className="text-right">
             <p className="font-display text-2xl font-extrabold text-status-available tabular-nums">{st.free}</p>
-            <p className="text-xs text-muted-foreground">free{req?.mode === "timed" ? " in this slot" : " now"}</p>
+            <p className="text-xs text-muted-foreground">free{req?.mode === "plan" ? " for these dates" : req?.mode === "timed" ? " in this slot" : " now"}</p>
           </div>
           <Button asChild variant="outline" size="sm"><a href={googleMapsDirectionsUrl(lot)} target="_blank" rel="noopener noreferrer"><Navigation /> Navigate</a></Button>
         </div>
@@ -113,7 +128,19 @@ function Park() {
 
         <div className="order-1 space-y-4 xl:order-2 xl:sticky xl:top-24 xl:self-start">
           <Card className="space-y-4 p-4">
-            {lot.allowOpen && lot.allowTimed && (
+            <div className="grid grid-cols-3 gap-1 rounded-xl border p-1" role="radiogroup" aria-label="Booking duration">
+              {(["hourly", "weekly", "monthly"] as const).map((k) => (
+                <button key={k} role="radio" aria-checked={btype === k} onClick={() => { setBtype(k); setPlanUnits(k === "hourly" ? 1 : PLAN_PRICING[k].options[0]); setSel(null); }} className={cn("rounded-lg py-2 text-sm font-semibold capitalize", btype === k ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                  {k}
+                </button>
+              ))}
+            </div>
+
+            {btype !== "hourly" && (
+              <PlanPicker lot={lot} type={btype} units={planUnits} onUnits={(n) => { setPlanUnits(n); setSel(null); }} startKey={startKey} onStart={(k) => { setPlanStart(k); setSel(null); }} minKey={todayKey} maxKey={istDateKey(now + PLAN_MAX_LEAD_DAYS * 24 * 3600_000)} />
+            )}
+
+            {btype === "hourly" && lot.allowOpen && lot.allowTimed && (
               <div className="grid grid-cols-2 gap-1 rounded-xl border p-1" role="radiogroup" aria-label="Booking type">
                 {([["timed", "Time slot", CalendarClock], ["open", "No time limit", InfinityIcon]] as const).map(([k, t, Icon]) => (
                   <button key={k} role="radio" aria-checked={mode === k} onClick={() => { setMode(k); setSel(null); }} className={cn("flex items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-semibold", mode === k ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
@@ -123,7 +150,7 @@ function Park() {
               </div>
             )}
 
-            {mode === "timed" ? (
+            {btype === "hourly" && (mode === "timed" ? (
               <div className="space-y-2">
                 <div className="flex gap-1.5">
                   {days.map((d) => (
@@ -153,7 +180,7 @@ function Park() {
                 </div>
                 <p className="text-[11px] text-muted-foreground">Bay held until {fmtTime(now + (arrive + 15) * 60_000)}. Pay {formatINR(lot.pricePerHour)}/h for the time you stay.</p>
               </div>
-            )}
+            ))}
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between"><p className="text-sm font-semibold">Vehicle</p><Link href="/user/profile" className="text-xs font-semibold text-primary">+ Add</Link></div>
@@ -169,12 +196,21 @@ function Park() {
 
             <div className="rounded-xl bg-secondary/40 p-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Bay</span><b>{sel ?? "—"}</b></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Parking fee</span><span>{mode === "timed" && win ? formatINR(windowHours(win) * lot.pricePerHour) : `${formatINR(lot.pricePerHour)}/h`}</span></div>
-              <div className="mt-1 flex justify-between border-t pt-2 font-display text-base font-extrabold"><span>Pay now</span><span>{formatINR(COVER)}</span></div>
-              <p className="text-[11px] text-muted-foreground">Cover charge, adjusted at exit. Non-refundable if you don&apos;t show up.</p>
+              {planQuote ? (
+                <>
+                  <PlanBreakdown q={planQuote} payLabel="Pay now" />
+                  <p className="mt-1 text-[11px] text-muted-foreground">Paid in full now. Cancel any time and unused time is refunded to your FASTag wallet. The pass ends at 12:00 AM on the end date.</p>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Parking fee</span><span>{mode === "timed" && win ? formatINR(windowHours(win) * lot.pricePerHour) : `${formatINR(lot.pricePerHour)}/h`}</span></div>
+                  <div className="mt-1 flex justify-between border-t pt-2 font-display text-base font-extrabold"><span>Pay now</span><span>{formatINR(COVER)}</span></div>
+                  <p className="text-[11px] text-muted-foreground">Cover charge, adjusted at exit. Non-refundable if you don&apos;t show up.</p>
+                </>
+              )}
             </div>
             <Button size="lg" className="w-full" disabled={!sel || !req || !vehicle} onClick={() => setOpen(true)}>
-              {!req ? "Choose a time slot" : !sel ? "Tap a green bay" : `Book bay ${sel} · ${formatINR(COVER)}`}
+              {!req ? (btype === "hourly" ? "Choose a time slot" : "Pick a start date") : !sel ? "Tap a green bay" : `Book bay ${sel} · ${formatINR(planQuote ? planQuote.total : COVER)}`}
             </Button>
           </Card>
         </div>

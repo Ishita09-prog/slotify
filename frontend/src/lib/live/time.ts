@@ -46,6 +46,8 @@ export function currentWindow(windows: TimeWindow[], now: number) {
 
 export const fmtTime = (t: number) =>
   new Date(t).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", hour12: true });
+export const fmtDate = (t: number) =>
+  new Date(t).toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", year: "numeric" });
 export const fmtDateTime = (t: number) =>
   new Date(t).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", hour12: true });
 export const fmtDur = (ms: number) => {
