@@ -1,0 +1,173 @@
+{
+  "version": "slotify-occ-gbm-2026.10",
+  "trainedAt": "2026-10-02T17:07:48",
+  "algorithm": "Gradient-boosted decision trees (scikit-learn HistGradientBoostingRegressor): mean + 10th/90th percentile quantile models",
+  "target": "Lot occupancy (0-1) at arrival time, 15-180 min ahead",
+  "features": [
+    {
+      "name": "horizon_min",
+      "label": "How far ahead"
+    },
+    {
+      "name": "target_hour",
+      "label": "Time of day"
+    },
+    {
+      "name": "target_dow",
+      "label": "Day of week"
+    },
+    {
+      "name": "is_weekend",
+      "label": "Weekend"
+    },
+    {
+      "name": "is_holiday",
+      "label": "Public holiday"
+    },
+    {
+      "name": "festival_season",
+      "label": "Festival shopping season"
+    },
+    {
+      "name": "rain_mm",
+      "label": "Rain forecast"
+    },
+    {
+      "name": "current_occ",
+      "label": "Occupancy right now"
+    },
+    {
+      "name": "current_hour",
+      "label": "Current hour"
+    },
+    {
+      "name": "lot_base_occupancy",
+      "label": "Lot's usual demand"
+    },
+    {
+      "name": "hist_now_occ",
+      "label": "Usual occupancy at this hour"
+    },
+    {
+      "name": "hist_target_occ",
+      "label": "Usual occupancy at arrival hour"
+    },
+    {
+      "name": "current_deviation",
+      "label": "Busier / quieter than usual now"
+    },
+    {
+      "name": "cat_mall",
+      "label": "Lot type"
+    },
+    {
+      "name": "cat_commercial",
+      "label": "Lot type"
+    },
+    {
+      "name": "cat_transit",
+      "label": "Lot type"
+    },
+    {
+      "name": "cat_hospital",
+      "label": "Lot type"
+    },
+    {
+      "name": "cat_office",
+      "label": "Lot type"
+    },
+    {
+      "name": "cat_recreation",
+      "label": "Lot type"
+    },
+    {
+      "name": "cat_religious",
+      "label": "Lot type"
+    }
+  ],
+  "categories": [
+    "mall",
+    "commercial",
+    "transit",
+    "hospital",
+    "office",
+    "recreation",
+    "religious"
+  ],
+  "training": {
+    "data": "SIMULATED \u2014 365 days x 30 lots at 15-min resolution, generated from demand profiles + daily bias, unannounced events, AR(1) noise, monsoon rain",
+    "lots": 30,
+    "trainPairs": 480000,
+    "holdoutPairs": 75000,
+    "holdout": "last 60 days (time-based)"
+  },
+  "metrics": {
+    "mae_occupancy_pts": {
+      "gbm": 2.91,
+      "heuristic_v1": 3.12,
+      "persistence": 7.92
+    },
+    "mae_free_bays": {
+      "gbm": 1.47,
+      "heuristic_v1": 1.58,
+      "persistence": 4.01
+    },
+    "interval_80_coverage": 0.794,
+    "mean_interval_width_pts": 9.3,
+    "by_horizon_mae_pts": {
+      "15": {
+        "gbm": 1.73,
+        "heuristic_v1": 1.67,
+        "persistence": 2.12
+      },
+      "30": {
+        "gbm": 2.18,
+        "heuristic_v1": 2.29,
+        "persistence": 3.68
+      },
+      "45": {
+        "gbm": 2.54,
+        "heuristic_v1": 2.73,
+        "persistence": 5.2
+      },
+      "60": {
+        "gbm": 2.92,
+        "heuristic_v1": 3.15,
+        "persistence": 6.62
+      },
+      "90": {
+        "gbm": 3.3,
+        "heuristic_v1": 3.65,
+        "persistence": 9.38
+      },
+      "120": {
+        "gbm": 3.63,
+        "heuristic_v1": 3.96,
+        "persistence": 12.08
+      },
+      "180": {
+        "gbm": 4.11,
+        "heuristic_v1": 4.42,
+        "persistence": 16.35
+      }
+    },
+    "mae_on_holiday_rain_festival_pts": {
+      "share_of_holdout": 0.076,
+      "gbm": 3.4,
+      "heuristic_v1": 5.06,
+      "persistence": 7.94
+    },
+    "anomaly_detector": {
+      "rule": "observed occupancy outside the 30-min-ahead 80% interval by > 5 pts on 2 consecutive checks",
+      "events_in_holdout": 80,
+      "event_recall": 0.95,
+      "median_detection_delay_min": 15,
+      "false_alerts_per_lot_per_week": 0.15
+    }
+  },
+  "limitations": [
+    "Trained on simulated history; must be retrained on the real detections archive before go-live.",
+    "Does not see unannounced events (that is what the anomaly detector is for).",
+    "Weather is a forecast input; forecast error is not modelled."
+  ]
+}

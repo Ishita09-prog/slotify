@@ -1,0 +1,19 @@
+{
+  "_doc": "Demand profiles used by the city simulator and by ml/generate_history.py. r(h) = base + sum(w * exp(-(h-peak)^2 / (2*width^2))), normalised so the strongest peak is ~1. Expected occupancy = lot.baseOccupancy * (0.25 + 0.85*r) * day factors.",
+  "categories": {
+    "mall":       { "base": 0.08, "peaks": [[13.5, 2.2, 0.55], [19.5, 2.4, 0.95]], "weekend": 1.15, "holiday": 1.2,  "rain": 1.08, "festival": 1.18 },
+    "commercial": { "base": 0.12, "peaks": [[11.5, 2.4, 0.75], [18.5, 2.3, 0.92]], "weekend": 1.08, "holiday": 1.12, "rain": 0.9,  "festival": 1.22 },
+    "transit":    { "base": 0.22, "peaks": [[8.5, 1.6, 0.8],   [18.5, 1.9, 0.78]], "weekend": 0.82, "holiday": 0.75, "rain": 1.05, "festival": 1.05 },
+    "hospital":   { "base": 0.35, "peaks": [[10.5, 3.0, 0.65], [17.5, 2.0, 0.3]],  "weekend": 0.85, "holiday": 0.8,  "rain": 1.0,  "festival": 1.0 },
+    "office":     { "base": 0.05, "peaks": [[10.5, 1.8, 0.95], [15.0, 3.0, 0.5]],  "weekend": 0.4,  "holiday": 0.35, "rain": 1.02, "festival": 0.95 },
+    "recreation": { "base": 0.05, "peaks": [[6.5, 1.2, 0.45],  [18.5, 1.8, 0.95]], "weekend": 1.35, "holiday": 1.3,  "rain": 0.45, "festival": 1.1 },
+    "religious":  { "base": 0.1,  "peaks": [[7.5, 1.5, 0.8],   [18.5, 1.6, 0.92]], "weekend": 1.2,  "holiday": 1.35, "rain": 0.85, "festival": 1.3 }
+  },
+  "holidays": [
+    "2025-01-14", "2025-01-15", "2025-01-16", "2025-01-26", "2025-04-14", "2025-05-01", "2025-08-15", "2025-08-27",
+    "2025-10-01", "2025-10-02", "2025-10-20", "2025-12-25",
+    "2026-01-01", "2026-01-14", "2026-01-15", "2026-01-16", "2026-01-26", "2026-04-14", "2026-05-01", "2026-08-15",
+    "2026-09-14", "2026-10-02", "2026-10-19", "2026-10-20", "2026-11-08", "2026-12-25"
+  ],
+  "festival_seasons": [["2025-10-06", "2025-10-19"], ["2026-01-08", "2026-01-13"], ["2026-10-24", "2026-11-07"]]
+}

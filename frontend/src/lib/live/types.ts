@@ -1,0 +1,159 @@
+import type { LotCategory, SlotType } from "../types";
+
+/* ------------------------------------------------------------------ */
+/* Real (non-simulated) data model shared by every device.             */
+/* Firestore collections: accounts, lots, bays, bookings, txns.        */
+/* ------------------------------------------------------------------ */
+
+export type Role = "driver" | "owner";
+export type VehicleType = "car" | "suv" | "ev" | "bike";
+
+export interface Vehicle {
+  number: string;
+  type: VehicleType;
+}
+
+export interface Fastag {
+  tagId: string;
+  bank: string;
+  balance: number;
+  vehicle: string;
+}
+
+export interface Account {
+  id: string; // = auth uid
+  username: string;
+  role: Role;
+  name: string;
+  phone: string;
+  createdAt: number;
+  vehicles: Vehicle[];
+  defaultVehicle?: string;
+  fastag?: Fastag;
+  /** owner: business name shown to drivers */
+  business?: string;
+}
+
+export interface TimeWindow {
+  id: string;
+  start: string; // "10:00"
+  end: string; // "13:00"
+}
+
+export interface LiveLot {
+  id: string;
+  ownerUid: string;
+  ownerName: string;
+  name: string;
+  category: LotCategory;
+  area: string;
+  zone: string;
+  address: string;
+  lat: number;
+  lng: number;
+  pricePerHour: number;
+  evPerHour: number;
+  /** drivers may park without a time limit (pay for time used) */
+  allowOpen: boolean;
+  /** drivers book one of the owner's time slots */
+  allowTimed: boolean;
+  windows: TimeWindow[];
+  openHours: string;
+  features: string[];
+  createdAt: number;
+  rows: number;
+}
+
+/** A booking pinned on a bay (the bay document is the lock — every booking goes through a transaction on it). */
+export interface Occupant {
+  bookingId: string;
+  uid: string;
+  vehicle: string;
+  status: "booked" | "parked";
+  at: number;
+}
+
+export interface Bay {
+  id: string;
+  lotId: string;
+  ownerUid: string;
+  label: string; // "A3"
+  row: string;
+  col: number;
+  type: SlotType;
+  active: boolean;
+  /** checkout in progress — nobody else can book until `until` */
+  hold?: { uid: string; until: number } | null;
+  /** no-time-limit booking */
+  open?: Occupant | null;
+  /** timed bookings keyed by `${yyyymmdd}_${windowId}` */
+  slots?: Record<string, Occupant>;
+  updatedAt: number;
+}
+
+export type PayMethod = "fastag" | "upi" | "qr" | "card";
+export type BookingStatus = "booked" | "parked" | "completed" | "cancelled" | "noshow";
+
+export interface LiveBooking {
+  id: string;
+  lotId: string;
+  lotName: string;
+  lotArea: string;
+  bayId: string;
+  bayLabel: string;
+  ownerUid: string;
+  driverUid: string;
+  driverName: string;
+  vehicle: string;
+  vehicleType: VehicleType;
+  mode: "timed" | "open";
+  /** timed: slot key + label */
+  slotKey?: string | null;
+  windowLabel?: string | null;
+  /** timed: window start/end; open: expected arrival / null */
+  startAt: number;
+  endAt: number | null;
+  status: BookingStatus;
+  cover: number;
+  coverMethod: PayMethod;
+  pricePerHour: number;
+  createdAt: number;
+  parkedAt?: number | null;
+  exitAt?: number | null;
+  fee?: number | null;
+  paidAtExit?: number | null;
+  exitMethod?: PayMethod | null;
+}
+
+export interface Txn {
+  id: string;
+  uid: string;
+  kind: "credit" | "debit";
+  amount: number;
+  desc: string;
+  at: number;
+  balanceAfter: number;
+  method: PayMethod | "fastag-gate" | "recharge";
+}
+
+export const COVER = 25;
+export const HOLD_MS = 3 * 60_000;
+export const NO_SHOW_GRACE_MS = 15 * 60_000;
+export const VEHICLE_LABEL: Record<VehicleType, string> = { car: "Car", suv: "SUV", ev: "Electric car", bike: "Two-wheeler" };
+
+/** Command centre → operator request for recorded camera footage (operator approves; every step is audited). */
+export interface FootageRequest {
+  id: string;
+  lotId: string;
+  lotName: string;
+  ownerUid: string;
+  ownerName: string;
+  requestedBy: string;
+  requestedById: string;
+  reason: string;
+  window: string; // "Today 18:00–18:30"
+  status: "pending" | "approved" | "declined";
+  createdAt: number;
+  decidedAt?: number | null;
+  note?: string | null;
+}

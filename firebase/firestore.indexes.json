@@ -1,0 +1,17 @@
+{
+  "indexes": [
+    { "collectionGroup": "slots", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "row", "order": "ASCENDING" }, { "fieldPath": "col", "order": "ASCENDING" } ] },
+    { "collectionGroup": "bookings", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "vehicle_number", "order": "ASCENDING" }, { "fieldPath": "created_at", "order": "DESCENDING" } ] },
+    { "collectionGroup": "bookings", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "lot_id", "order": "ASCENDING" }, { "fieldPath": "start_time", "order": "DESCENDING" } ] },
+    { "collectionGroup": "violations", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "status", "order": "ASCENDING" }, { "fieldPath": "at", "order": "DESCENDING" } ] },
+    { "collectionGroup": "detections", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "lot_id", "order": "ASCENDING" }, { "fieldPath": "at", "order": "DESCENDING" } ] },
+    { "collectionGroup": "transactions", "queryScope": "COLLECTION", "fields": [
+      { "fieldPath": "at", "order": "DESCENDING" } ] }
+  ],
+  "fieldOverrides": []
+}

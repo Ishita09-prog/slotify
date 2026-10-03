@@ -1,0 +1,8 @@
+# Static deploy: the whole app (simulator + ML model) runs in the browser.
+[build]
+  command = "npm run export"
+  publish = "out"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NEXT_TELEMETRY_DISABLED = "1"

@@ -1,0 +1,1610 @@
+{
+ "generatedFrom": "frontend/src/lib/cities",
+ "cities": [
+  {
+   "id": "chennai-south",
+   "name": "South Chennai",
+   "shortName": "Chennai",
+   "state": "Tamil Nadu",
+   "center": {
+    "lat": 12.968,
+    "lng": 80.238
+   },
+   "zoom": 12,
+   "authority": "Greater Chennai Corporation",
+   "authorityShort": "GCC",
+   "police": "Greater Chennai Traffic Police",
+   "demoOwnerId": "own-gcc",
+   "demoOwnerName": "GCC Smart Parking Cell",
+   "demoVehicle": "TN07CK4821",
+   "walletBank": "Madras Co-op Bank FASTag (demo)",
+   "plateDistricts": [
+    "01",
+    "02",
+    "04",
+    "05",
+    "06",
+    "07",
+    "07",
+    "09",
+    "10",
+    "14",
+    "14",
+    "22",
+    "85"
+   ],
+   "avgSpeedKmh": 18,
+   "lots": [
+    {
+     "id": "tn-mlcp",
+     "name": "T. Nagar Multi-level Car Park",
+     "area": "T. Nagar",
+     "address": "Thyagaraya Rd, near Pondy Bazaar, T. Nagar, Chennai 600017",
+     "lat": 13.0428,
+     "lng": 80.2366,
+     "category": "commercial",
+     "layout": {
+      "rows": 8,
+      "cols": 12
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.82,
+     "openHours": "6:00 – 23:30",
+     "features": [
+      "Multi-level",
+      "Covered",
+      "CCTV",
+      "EV charging",
+      "Pay by FASTag"
+     ],
+     "ownerId": "own-gcc",
+     "covered": true
+    },
+    {
+     "id": "tn-pondy",
+     "name": "Pondy Bazaar Smart Bays",
+     "area": "T. Nagar",
+     "address": "Sir Theagaraya Rd (Pondy Bazaar pedestrian plaza), T. Nagar, Chennai 600017",
+     "lat": 13.0418,
+     "lng": 80.2341,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 10
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.9,
+     "openHours": "8:00 – 22:00",
+     "features": [
+      "On-street",
+      "Sensor bays",
+      "Pay by FASTag"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "tn-ranganathan",
+     "name": "Ranganathan St Feeder Parking",
+     "area": "T. Nagar",
+     "address": "Near Mambalam Railway Station, Ranganathan St, T. Nagar, Chennai 600017",
+     "lat": 13.039,
+     "lng": 80.2304,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 8
+     },
+     "pricePerHour": 25,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.92,
+     "openHours": "7:00 – 22:30",
+     "features": [
+      "Two-wheeler bays",
+      "CCTV",
+      "Shopping district"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "tn-panagal",
+     "name": "Panagal Park Parking",
+     "area": "T. Nagar",
+     "address": "Venkatanarayana Rd, Panagal Park, T. Nagar, Chennai 600017",
+     "lat": 13.0408,
+     "lng": 80.2376,
+     "category": "commercial",
+     "layout": {
+      "rows": 5,
+      "cols": 8
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.78,
+     "openHours": "8:00 – 22:00",
+     "features": [
+      "On-street",
+      "Sensor bays"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "tn-busterminus",
+     "name": "T. Nagar Bus Terminus Park & Ride",
+     "area": "T. Nagar",
+     "address": "T. Nagar Bus Terminus, South Usman Rd, Chennai 600017",
+     "lat": 13.0322,
+     "lng": 80.233,
+     "category": "transit",
+     "layout": {
+      "rows": 5,
+      "cols": 10
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.74,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "Park & Ride",
+      "CCTV"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "vl-phoenix",
+     "name": "Phoenix MarketCity Parking",
+     "area": "Velachery",
+     "address": "Velachery Main Rd, Velachery, Chennai 600042",
+     "lat": 12.9915,
+     "lng": 80.217,
+     "category": "mall",
+     "layout": {
+      "rows": 8,
+      "cols": 12
+     },
+     "pricePerHour": 60,
+     "evSurchargePerHour": 25,
+     "baseOccupancy": 0.7,
+     "openHours": "10:00 – 23:00",
+     "features": [
+      "Covered",
+      "EV charging",
+      "Valet",
+      "CCTV"
+     ],
+     "ownerId": "own-phoenix",
+     "covered": true
+    },
+    {
+     "id": "vl-mrts",
+     "name": "Velachery MRTS Station Parking",
+     "area": "Velachery",
+     "address": "Velachery MRTS Station, Velachery, Chennai 600042",
+     "lat": 12.9786,
+     "lng": 80.2212,
+     "category": "transit",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.8,
+     "openHours": "4:30 – 23:30",
+     "features": [
+      "Park & Ride",
+      "Two-wheeler bays",
+      "CCTV"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "vl-vijayanagar",
+     "name": "Vijayanagar Bus Terminus Bays",
+     "area": "Velachery",
+     "address": "Vijaya Nagar Bus Terminus, Velachery, Chennai 600042",
+     "lat": 12.9796,
+     "lng": 80.2187,
+     "category": "transit",
+     "layout": {
+      "rows": 4,
+      "cols": 8
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.76,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "On-street",
+      "Sensor bays"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "vl-100ft",
+     "name": "Velachery 100 Ft Rd Smart Bays",
+     "area": "Velachery",
+     "address": "Velachery Bypass (100 Feet) Rd, Velachery, Chennai 600042",
+     "lat": 12.9845,
+     "lng": 80.218,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 10
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.68,
+     "openHours": "8:00 – 22:00",
+     "features": [
+      "On-street",
+      "Sensor bays",
+      "Pay by FASTag"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "ad-signal",
+     "name": "Adyar Signal LB Road Bays",
+     "area": "Adyar",
+     "address": "LB Rd, near Adyar Signal, Adyar, Chennai 600020",
+     "lat": 13.0064,
+     "lng": 80.2572,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 9
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.79,
+     "openHours": "8:00 – 22:00",
+     "features": [
+      "On-street",
+      "Sensor bays"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "ad-malar",
+     "name": "Adyar Hospital Visitor Parking",
+     "area": "Adyar",
+     "address": "Gandhi Nagar 1st Main Rd, Adyar, Chennai 600020",
+     "lat": 13.0115,
+     "lng": 80.258,
+     "category": "hospital",
+     "layout": {
+      "rows": 5,
+      "cols": 8
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.84,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "Accessible bays",
+      "Drop-off zone"
+     ],
+     "ownerId": "own-hospital",
+     "covered": true
+    },
+    {
+     "id": "ad-besant",
+     "name": "Elliot's Beach Parking",
+     "area": "Besant Nagar",
+     "address": "Elliot's Beach Rd, Besant Nagar, Chennai 600090",
+     "lat": 12.9988,
+     "lng": 80.2718,
+     "category": "recreation",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.55,
+     "openHours": "5:00 – 23:00",
+     "features": [
+      "Open air",
+      "Two-wheeler bays",
+      "Weekend surge"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "ad-ashtalakshmi",
+     "name": "Ashtalakshmi Temple Parking",
+     "area": "Besant Nagar",
+     "address": "Ashtalakshmi Kovil St, Besant Nagar, Chennai 600090",
+     "lat": 12.9927,
+     "lng": 80.2712,
+     "category": "religious",
+     "layout": {
+      "rows": 3,
+      "cols": 10
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.6,
+     "openHours": "6:00 – 21:00",
+     "features": [
+      "Festival surge",
+      "Two-wheeler bays"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "ad-thiruvanmiyur",
+     "name": "Thiruvanmiyur Bus Terminus Parking",
+     "area": "Thiruvanmiyur",
+     "address": "Thiruvanmiyur Bus Terminus, ECR Link, Chennai 600041",
+     "lat": 12.9866,
+     "lng": 80.2595,
+     "category": "transit",
+     "layout": {
+      "rows": 5,
+      "cols": 8
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.72,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "Park & Ride"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "ad-kotturpuram",
+     "name": "Kotturpuram Library Parking",
+     "area": "Kotturpuram",
+     "address": "Gandhi Mandapam Rd, Kotturpuram, Chennai 600085",
+     "lat": 13.0185,
+     "lng": 80.242,
+     "category": "office",
+     "layout": {
+      "rows": 4,
+      "cols": 8
+     },
+     "pricePerHour": 10,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.5,
+     "openHours": "8:00 – 20:00",
+     "features": [
+      "Covered",
+      "Civic building",
+      "CCTV"
+     ],
+     "ownerId": "own-gcc",
+     "covered": true
+    },
+    {
+     "id": "omr-tidel",
+     "name": "Tidel Park Visitor Parking",
+     "area": "Taramani",
+     "address": "Rajiv Gandhi Salai (OMR), Taramani, Chennai 600113",
+     "lat": 12.9894,
+     "lng": 80.2486,
+     "category": "office",
+     "layout": {
+      "rows": 8,
+      "cols": 12
+     },
+     "pricePerHour": 30,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.8,
+     "openHours": "24 hours",
+     "features": [
+      "Covered",
+      "EV charging",
+      "CCTV",
+      "IT park"
+     ],
+     "ownerId": "own-it-parks",
+     "covered": true
+    },
+    {
+     "id": "omr-perungudi",
+     "name": "Perungudi MRTS Park & Ride",
+     "area": "Perungudi",
+     "address": "Perungudi MRTS Station, OMR, Chennai 600096",
+     "lat": 12.9617,
+     "lng": 80.2428,
+     "category": "transit",
+     "layout": {
+      "rows": 5,
+      "cols": 10
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.66,
+     "openHours": "4:30 – 23:30",
+     "features": [
+      "Park & Ride",
+      "Two-wheeler bays"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "omr-thoraipakkam",
+     "name": "Thoraipakkam Junction Bays",
+     "area": "Thoraipakkam",
+     "address": "OMR × Pallavaram–Thoraipakkam Radial Rd, Thoraipakkam, Chennai 600097",
+     "lat": 12.9405,
+     "lng": 80.2365,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 10
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.7,
+     "openHours": "7:00 – 23:00",
+     "features": [
+      "On-street",
+      "Sensor bays"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "omr-sholinganallur",
+     "name": "Sholinganallur Junction Park & Ride",
+     "area": "Sholinganallur",
+     "address": "OMR × ECR Link Rd, Sholinganallur, Chennai 600119",
+     "lat": 12.901,
+     "lng": 80.2279,
+     "category": "transit",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 15,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.78,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "Park & Ride",
+      "EV charging"
+     ],
+     "ownerId": "own-gcc",
+     "covered": false
+    },
+    {
+     "id": "omr-navalur",
+     "name": "Navalur IT Corridor Parking",
+     "area": "Navalur",
+     "address": "OMR, Navalur, Chennai 600130",
+     "lat": 12.8459,
+     "lng": 80.2265,
+     "category": "office",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 25,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.64,
+     "openHours": "24 hours",
+     "features": [
+      "IT corridor",
+      "EV charging",
+      "CCTV"
+     ],
+     "ownerId": "own-it-parks",
+     "covered": true
+    },
+    {
+     "id": "omr-siruseri",
+     "name": "SIPCOT Siruseri Gate Parking",
+     "area": "Siruseri",
+     "address": "SIPCOT IT Park Main Gate, Siruseri, Chennai 603103",
+     "lat": 12.8283,
+     "lng": 80.2195,
+     "category": "office",
+     "layout": {
+      "rows": 6,
+      "cols": 12
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.6,
+     "openHours": "24 hours",
+     "features": [
+      "IT park",
+      "Shuttle link",
+      "CCTV"
+     ],
+     "ownerId": "own-it-parks",
+     "covered": false
+    }
+   ],
+   "commandZones": [
+    {
+     "id": "z-tnagar",
+     "name": "T. Nagar",
+     "division": "Traffic South-West",
+     "color": "#d95926",
+     "localities": [
+      {
+       "id": "l-pondy",
+       "name": "Pondy Bazaar",
+       "lat": 13.0418,
+       "lng": 80.2341,
+       "kind": "market",
+       "lotIds": [
+        "tn-pondy",
+        "tn-mlcp"
+       ],
+       "anprCameras": 6,
+       "vehiclesPerHour": 2300
+      },
+      {
+       "id": "l-ranganathan",
+       "name": "Ranganathan St",
+       "lat": 13.0392,
+       "lng": 80.231,
+       "kind": "market",
+       "lotIds": [
+        "tn-ranganathan"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1900
+      },
+      {
+       "id": "l-usman",
+       "name": "Usman Rd",
+       "lat": 13.038,
+       "lng": 80.233,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 4,
+       "vehiclesPerHour": 2100
+      },
+      {
+       "id": "l-panagal",
+       "name": "Panagal Park",
+       "lat": 13.0408,
+       "lng": 80.2376,
+       "kind": "junction",
+       "lotIds": [
+        "tn-panagal"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1500
+      },
+      {
+       "id": "l-tnbus",
+       "name": "T. Nagar Bus Terminus",
+       "lat": 13.0322,
+       "lng": 80.233,
+       "kind": "transit",
+       "lotIds": [
+        "tn-busterminus"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1300
+      },
+      {
+       "id": "l-mambalam",
+       "name": "Mambalam Station",
+       "lat": 13.0383,
+       "lng": 80.2287,
+       "kind": "transit",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1100
+      },
+      {
+       "id": "l-gnchetty",
+       "name": "GN Chetty Rd",
+       "lat": 13.045,
+       "lng": 80.242,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1600
+      }
+     ]
+    },
+    {
+     "id": "z-velachery",
+     "name": "Velachery",
+     "division": "Traffic South",
+     "color": "#9085e9",
+     "localities": [
+      {
+       "id": "l-phoenix",
+       "name": "Phoenix MarketCity",
+       "lat": 12.9915,
+       "lng": 80.217,
+       "kind": "mall",
+       "lotIds": [
+        "vl-phoenix"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1800
+      },
+      {
+       "id": "l-vlmrts",
+       "name": "Velachery MRTS",
+       "lat": 12.9786,
+       "lng": 80.2212,
+       "kind": "transit",
+       "lotIds": [
+        "vl-mrts"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1200
+      },
+      {
+       "id": "l-vijayanagar",
+       "name": "Vijayanagar Bus Terminus",
+       "lat": 12.9796,
+       "lng": 80.2187,
+       "kind": "transit",
+       "lotIds": [
+        "vl-vijayanagar"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1400
+      },
+      {
+       "id": "l-100ft",
+       "name": "100 Ft Bypass Rd",
+       "lat": 12.9845,
+       "lng": 80.218,
+       "kind": "junction",
+       "lotIds": [
+        "vl-100ft"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1700
+      },
+      {
+       "id": "l-gurunanak",
+       "name": "Gurunanak College Jn",
+       "lat": 12.9822,
+       "lng": 80.209,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1300
+      },
+      {
+       "id": "l-taramanilink",
+       "name": "Taramani Link Rd",
+       "lat": 12.9862,
+       "lng": 80.2255,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1100
+      },
+      {
+       "id": "l-pallikaranai",
+       "name": "Velachery–Tambaram Rd (Pallikaranai)",
+       "lat": 12.9349,
+       "lng": 80.2137,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1500
+      }
+     ]
+    },
+    {
+     "id": "z-adyar",
+     "name": "Adyar",
+     "division": "Traffic South-East",
+     "color": "#199e70",
+     "localities": [
+      {
+       "id": "l-adyarsignal",
+       "name": "Adyar Signal / LB Rd",
+       "lat": 13.0064,
+       "lng": 80.2572,
+       "kind": "junction",
+       "lotIds": [
+        "ad-signal"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1900
+      },
+      {
+       "id": "l-gandhinagar",
+       "name": "Gandhi Nagar",
+       "lat": 13.011,
+       "lng": 80.256,
+       "kind": "hospital",
+       "lotIds": [
+        "ad-malar"
+       ],
+       "anprCameras": 2,
+       "vehiclesPerHour": 900
+      },
+      {
+       "id": "l-kasturba",
+       "name": "Kasturba Nagar",
+       "lat": 13.0005,
+       "lng": 80.249,
+       "kind": "residential",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 700
+      },
+      {
+       "id": "l-besant",
+       "name": "Besant Nagar (Elliot's Beach)",
+       "lat": 12.9988,
+       "lng": 80.2718,
+       "kind": "beach",
+       "lotIds": [
+        "ad-besant",
+        "ad-ashtalakshmi"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1200
+      },
+      {
+       "id": "l-thiruvanmiyur",
+       "name": "Thiruvanmiyur",
+       "lat": 12.9866,
+       "lng": 80.2595,
+       "kind": "transit",
+       "lotIds": [
+        "ad-thiruvanmiyur"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1400
+      },
+      {
+       "id": "l-kotturpuram",
+       "name": "Kotturpuram",
+       "lat": 13.0185,
+       "lng": 80.242,
+       "kind": "civic",
+       "lotIds": [
+        "ad-kotturpuram"
+       ],
+       "anprCameras": 2,
+       "vehiclesPerHour": 600
+      },
+      {
+       "id": "l-adyardepot",
+       "name": "Adyar Depot",
+       "lat": 13.004,
+       "lng": 80.256,
+       "kind": "transit",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1000
+      }
+     ]
+    },
+    {
+     "id": "z-omr",
+     "name": "OMR Corridor",
+     "division": "Traffic OMR",
+     "color": "#3987e5",
+     "localities": [
+      {
+       "id": "l-madhyakailash",
+       "name": "Madhya Kailash Jn",
+       "lat": 13.0066,
+       "lng": 80.2468,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 4,
+       "vehiclesPerHour": 2400
+      },
+      {
+       "id": "l-tidel",
+       "name": "Tidel Park",
+       "lat": 12.9894,
+       "lng": 80.2486,
+       "kind": "it_corridor",
+       "lotIds": [
+        "omr-tidel"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 2000
+      },
+      {
+       "id": "l-srptools",
+       "name": "SRP Tools Jn",
+       "lat": 12.9768,
+       "lng": 80.2478,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1900
+      },
+      {
+       "id": "l-kandanchavadi",
+       "name": "Kandanchavadi",
+       "lat": 12.9689,
+       "lng": 80.2468,
+       "kind": "junction",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1700
+      },
+      {
+       "id": "l-perungudi",
+       "name": "Perungudi",
+       "lat": 12.9617,
+       "lng": 80.2428,
+       "kind": "transit",
+       "lotIds": [
+        "omr-perungudi"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1600
+      },
+      {
+       "id": "l-thoraipakkam",
+       "name": "Thoraipakkam (Radial Rd Jn)",
+       "lat": 12.9405,
+       "lng": 80.2365,
+       "kind": "junction",
+       "lotIds": [
+        "omr-thoraipakkam"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 2100
+      },
+      {
+       "id": "l-karapakkam",
+       "name": "Karapakkam",
+       "lat": 12.9165,
+       "lng": 80.23,
+       "kind": "it_corridor",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1500
+      },
+      {
+       "id": "l-sholinganallur",
+       "name": "Sholinganallur Jn",
+       "lat": 12.901,
+       "lng": 80.2279,
+       "kind": "junction",
+       "lotIds": [
+        "omr-sholinganallur"
+       ],
+       "anprCameras": 5,
+       "vehiclesPerHour": 2600
+      },
+      {
+       "id": "l-navalur",
+       "name": "Navalur",
+       "lat": 12.8459,
+       "lng": 80.2265,
+       "kind": "it_corridor",
+       "lotIds": [
+        "omr-navalur"
+       ],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1200
+      },
+      {
+       "id": "l-siruseri",
+       "name": "Siruseri SIPCOT",
+       "lat": 12.8283,
+       "lng": 80.2195,
+       "kind": "it_corridor",
+       "lotIds": [
+        "omr-siruseri"
+       ],
+       "anprCameras": 2,
+       "vehiclesPerHour": 1100
+      }
+     ]
+    }
+   ],
+   "violationSpots": [
+    {
+     "location": "Sir Theagaraya Rd, Pondy Bazaar",
+     "lat": 13.042,
+     "lng": 80.2348,
+     "localityId": "l-pondy"
+    },
+    {
+     "location": "Ranganathan St, T. Nagar",
+     "lat": 13.0392,
+     "lng": 80.231,
+     "localityId": "l-ranganathan"
+    },
+    {
+     "location": "Usman Rd flyover service lane",
+     "lat": 13.0376,
+     "lng": 80.2331,
+     "localityId": "l-usman"
+    },
+    {
+     "location": "GN Chetty Rd, T. Nagar",
+     "lat": 13.0452,
+     "lng": 80.2418,
+     "localityId": "l-gnchetty"
+    },
+    {
+     "location": "Velachery Main Rd, near Phoenix",
+     "lat": 12.9906,
+     "lng": 80.2178,
+     "localityId": "l-phoenix"
+    },
+    {
+     "location": "100 Ft Bypass Rd, Velachery",
+     "lat": 12.985,
+     "lng": 80.2175,
+     "localityId": "l-100ft"
+    },
+    {
+     "location": "Vijayanagar Jn, Velachery",
+     "lat": 12.9799,
+     "lng": 80.219,
+     "localityId": "l-vijayanagar"
+    },
+    {
+     "location": "LB Rd, Adyar",
+     "lat": 13.006,
+     "lng": 80.2566,
+     "localityId": "l-adyarsignal"
+    },
+    {
+     "location": "2nd Avenue, Besant Nagar",
+     "lat": 12.9995,
+     "lng": 80.269,
+     "localityId": "l-besant"
+    },
+    {
+     "location": "East Coast Rd link, Thiruvanmiyur",
+     "lat": 12.9862,
+     "lng": 80.2601,
+     "localityId": "l-thiruvanmiyur"
+    },
+    {
+     "location": "OMR service road, Tidel Park",
+     "lat": 12.989,
+     "lng": 80.248,
+     "localityId": "l-tidel"
+    },
+    {
+     "location": "OMR, Thoraipakkam signal",
+     "lat": 12.9408,
+     "lng": 80.2368,
+     "localityId": "l-thoraipakkam"
+    },
+    {
+     "location": "Sholinganallur Jn bus bay",
+     "lat": 12.9014,
+     "lng": 80.2284,
+     "localityId": "l-sholinganallur"
+    },
+    {
+     "location": "OMR, Perungudi toll plaza",
+     "lat": 12.962,
+     "lng": 80.2433,
+     "localityId": "l-perungudi"
+    }
+   ],
+   "units": [
+    {
+     "id": "U-TN-11",
+     "name": "Patrol T-11 (T. Nagar)",
+     "zoneId": "z-tnagar",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-TN-T2",
+     "name": "Tow Truck TW-2 (T. Nagar)",
+     "zoneId": "z-tnagar",
+     "kind": "tow"
+    },
+    {
+     "id": "U-TN-W4",
+     "name": "Warden Team W-4 (Pondy Bazaar)",
+     "zoneId": "z-tnagar",
+     "kind": "warden"
+    },
+    {
+     "id": "U-VL-07",
+     "name": "Patrol V-07 (Velachery)",
+     "zoneId": "z-velachery",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-VL-W2",
+     "name": "Warden Team W-2 (Velachery)",
+     "zoneId": "z-velachery",
+     "kind": "warden"
+    },
+    {
+     "id": "U-AD-05",
+     "name": "Patrol A-05 (Adyar)",
+     "zoneId": "z-adyar",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-AD-T1",
+     "name": "Tow Truck TW-1 (Adyar)",
+     "zoneId": "z-adyar",
+     "kind": "tow"
+    },
+    {
+     "id": "U-OMR-03",
+     "name": "Patrol O-03 (Thoraipakkam)",
+     "zoneId": "z-omr",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-OMR-09",
+     "name": "Patrol O-09 (Sholinganallur)",
+     "zoneId": "z-omr",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-OMR-T3",
+     "name": "Tow Truck TW-3 (OMR)",
+     "zoneId": "z-omr",
+     "kind": "tow"
+    }
+   ],
+   "vmsBoards": [
+    {
+     "id": "VMS-TN-01",
+     "name": "Usman Rd North VMS",
+     "lat": 13.044,
+     "lng": 80.2318,
+     "zoneId": "z-tnagar"
+    },
+    {
+     "id": "VMS-TN-02",
+     "name": "GN Chetty Rd VMS",
+     "lat": 13.0462,
+     "lng": 80.243,
+     "zoneId": "z-tnagar"
+    },
+    {
+     "id": "VMS-VL-01",
+     "name": "Velachery Main Rd VMS",
+     "lat": 12.993,
+     "lng": 80.216,
+     "zoneId": "z-velachery"
+    },
+    {
+     "id": "VMS-AD-01",
+     "name": "Sardar Patel Rd VMS",
+     "lat": 13.008,
+     "lng": 80.25,
+     "zoneId": "z-adyar"
+    },
+    {
+     "id": "VMS-OMR-01",
+     "name": "OMR Madhya Kailash VMS",
+     "lat": 13.005,
+     "lng": 80.247,
+     "zoneId": "z-omr"
+    },
+    {
+     "id": "VMS-OMR-02",
+     "name": "OMR Sholinganallur VMS",
+     "lat": 12.905,
+     "lng": 80.2285,
+     "zoneId": "z-omr"
+    }
+   ]
+  },
+  {
+   "id": "coimbatore",
+   "name": "Coimbatore",
+   "shortName": "Coimbatore",
+   "state": "Tamil Nadu",
+   "center": {
+    "lat": 11.0168,
+    "lng": 76.9558
+   },
+   "zoom": 13,
+   "authority": "Coimbatore City Municipal Corporation",
+   "authorityShort": "CCMC",
+   "police": "Coimbatore City Traffic Police",
+   "demoOwnerId": "own-kovai-malls",
+   "demoOwnerName": "Kovai Malls Parking Co.",
+   "demoVehicle": "TN38AB1234",
+   "walletBank": "Kovai Co-op Bank FASTag (demo)",
+   "plateDistricts": [
+    "37",
+    "38",
+    "39",
+    "40",
+    "41",
+    "66",
+    "99",
+    "02",
+    "09"
+   ],
+   "avgSpeedKmh": 22,
+   "lots": [
+    {
+     "id": "brookefields",
+     "name": "Brookefields Mall Parking",
+     "area": "Brookefields",
+     "address": "Krishnasamy Rd, Brookefields, Coimbatore 641001",
+     "lat": 11.0089,
+     "lng": 76.9608,
+     "category": "mall",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 40,
+     "evSurchargePerHour": 20,
+     "baseOccupancy": 0.72,
+     "openHours": "9:00 – 23:00",
+     "features": [
+      "Covered",
+      "EV charging",
+      "CCTV",
+      "Valet"
+     ],
+     "ownerId": "own-kovai-malls",
+     "covered": true
+    },
+    {
+     "id": "gandhipuram",
+     "name": "Gandhipuram Multi-level",
+     "area": "Gandhipuram",
+     "address": "Near Central Bus Stand, Gandhipuram, Coimbatore 641012",
+     "lat": 11.0183,
+     "lng": 76.9674,
+     "category": "transit",
+     "layout": {
+      "rows": 5,
+      "cols": 10
+     },
+     "pricePerHour": 25,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.86,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "CCTV",
+      "Two-wheeler bays"
+     ],
+     "ownerId": "own-ccmc",
+     "covered": true
+    },
+    {
+     "id": "rs-puram",
+     "name": "RS Puram DB Road Smart Bays",
+     "area": "RS Puram",
+     "address": "DB Road, RS Puram, Coimbatore 641002",
+     "lat": 11.0086,
+     "lng": 76.9499,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 8
+     },
+     "pricePerHour": 30,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.64,
+     "openHours": "8:00 – 22:00",
+     "features": [
+      "On-street",
+      "Sensor bays",
+      "Pay by FASTag"
+     ],
+     "ownerId": "own-ccmc",
+     "covered": false
+    },
+    {
+     "id": "race-course",
+     "name": "Race Course Walkers' Parking",
+     "area": "Race Course",
+     "address": "Race Course Rd, Coimbatore 641018",
+     "lat": 10.9992,
+     "lng": 76.978,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 10
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.41,
+     "openHours": "5:00 – 22:00",
+     "features": [
+      "Open air",
+      "CCTV",
+      "Accessible bays"
+     ],
+     "ownerId": "own-ccmc",
+     "covered": false
+    },
+    {
+     "id": "town-hall",
+     "name": "Town Hall Heritage Parking",
+     "area": "Town Hall",
+     "address": "Big Bazaar St, Town Hall, Coimbatore 641001",
+     "lat": 10.9945,
+     "lng": 76.9614,
+     "category": "commercial",
+     "layout": {
+      "rows": 4,
+      "cols": 8
+     },
+     "pricePerHour": 30,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.91,
+     "openHours": "8:00 – 21:00",
+     "features": [
+      "Near markets",
+      "Two-wheeler bays"
+     ],
+     "ownerId": "own-ccmc",
+     "covered": false
+    },
+    {
+     "id": "junction",
+     "name": "Coimbatore Junction Railway Parking",
+     "area": "Railway Station",
+     "address": "State Bank Rd, Gopalapuram, Coimbatore 641018",
+     "lat": 10.9965,
+     "lng": 76.9669,
+     "category": "transit",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.78,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "Long stay",
+      "CCTV"
+     ],
+     "ownerId": "own-railways",
+     "covered": false
+    },
+    {
+     "id": "psg-peelamedu",
+     "name": "Peelamedu Tech Park Parking",
+     "area": "Peelamedu",
+     "address": "Avinashi Rd, Peelamedu, Coimbatore 641004",
+     "lat": 11.0247,
+     "lng": 77.0028,
+     "category": "office",
+     "layout": {
+      "rows": 5,
+      "cols": 10
+     },
+     "pricePerHour": 30,
+     "evSurchargePerHour": 15,
+     "baseOccupancy": 0.58,
+     "openHours": "7:00 – 23:00",
+     "features": [
+      "EV charging",
+      "Covered",
+      "Monthly passes"
+     ],
+     "ownerId": "own-kovai-malls",
+     "covered": true
+    },
+    {
+     "id": "prozone",
+     "name": "Prozone Mall Parking",
+     "area": "Saravanampatti",
+     "address": "Sathy Rd, Saravanampatti, Coimbatore 641035",
+     "lat": 11.0557,
+     "lng": 76.9947,
+     "category": "mall",
+     "layout": {
+      "rows": 6,
+      "cols": 10
+     },
+     "pricePerHour": 40,
+     "evSurchargePerHour": 20,
+     "baseOccupancy": 0.49,
+     "openHours": "10:00 – 23:00",
+     "features": [
+      "Covered",
+      "EV charging",
+      "Family bays"
+     ],
+     "ownerId": "own-kovai-malls",
+     "covered": true
+    },
+    {
+     "id": "kmch",
+     "name": "KMCH Hospital Visitor Parking",
+     "area": "Avinashi Road",
+     "address": "Avanashi Rd, Civil Aerodrome Post, Coimbatore 641014",
+     "lat": 11.0418,
+     "lng": 77.0402,
+     "category": "hospital",
+     "layout": {
+      "rows": 5,
+      "cols": 8
+     },
+     "pricePerHour": 20,
+     "evSurchargePerHour": 10,
+     "baseOccupancy": 0.82,
+     "openHours": "24 hours",
+     "features": [
+      "24×7",
+      "Accessible bays",
+      "Drop-off zone"
+     ],
+     "ownerId": "own-kmch",
+     "covered": true
+    }
+   ],
+   "commandZones": [
+    {
+     "id": "z-central",
+     "name": "Central",
+     "division": "Traffic Central",
+     "color": "#d95926",
+     "localities": [
+      {
+       "id": "l-gandhipuram",
+       "name": "Gandhipuram",
+       "lat": 11.0178,
+       "lng": 76.9656,
+       "kind": "transit",
+       "lotIds": [
+        "gandhipuram"
+       ],
+       "anprCameras": 6,
+       "vehiclesPerHour": 2140
+      },
+      {
+       "id": "l-townhall",
+       "name": "Town Hall & Big Bazaar",
+       "lat": 10.9948,
+       "lng": 76.9605,
+       "kind": "market",
+       "lotIds": [
+        "town-hall"
+       ],
+       "anprCameras": 5,
+       "vehiclesPerHour": 1860
+      },
+      {
+       "id": "l-junction",
+       "name": "Railway Junction",
+       "lat": 10.9968,
+       "lng": 76.9672,
+       "kind": "transit",
+       "lotIds": [
+        "junction"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1420
+      },
+      {
+       "id": "l-rspuram",
+       "name": "RS Puram",
+       "lat": 11.0082,
+       "lng": 76.9496,
+       "kind": "market",
+       "lotIds": [
+        "rs-puram"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 980
+      },
+      {
+       "id": "l-brookefields",
+       "name": "Brookefields",
+       "lat": 11.0092,
+       "lng": 76.9612,
+       "kind": "mall",
+       "lotIds": [
+        "brookefields"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 1110
+      }
+     ]
+    },
+    {
+     "id": "z-east",
+     "name": "East",
+     "division": "Traffic East",
+     "color": "#199e70",
+     "localities": [
+      {
+       "id": "l-peelamedu",
+       "name": "Peelamedu & Avinashi Rd",
+       "lat": 11.0253,
+       "lng": 77.0031,
+       "kind": "it_corridor",
+       "lotIds": [
+        "psg-peelamedu",
+        "kmch"
+       ],
+       "anprCameras": 4,
+       "vehiclesPerHour": 1290
+      },
+      {
+       "id": "l-racecourse",
+       "name": "Race Course",
+       "lat": 10.9995,
+       "lng": 76.9775,
+       "kind": "civic",
+       "lotIds": [
+        "race-course"
+       ],
+       "anprCameras": 2,
+       "vehiclesPerHour": 520
+      }
+     ]
+    },
+    {
+     "id": "z-north",
+     "name": "North",
+     "division": "Traffic North",
+     "color": "#3987e5",
+     "localities": [
+      {
+       "id": "l-saravanampatti",
+       "name": "Saravanampatti",
+       "lat": 11.0561,
+       "lng": 76.9951,
+       "kind": "it_corridor",
+       "lotIds": [
+        "prozone"
+       ],
+       "anprCameras": 3,
+       "vehiclesPerHour": 640
+      },
+      {
+       "id": "l-saibaba",
+       "name": "Saibaba Colony",
+       "lat": 11.0241,
+       "lng": 76.9446,
+       "kind": "residential",
+       "lotIds": [],
+       "anprCameras": 2,
+       "vehiclesPerHour": 470
+      }
+     ]
+    }
+   ],
+   "violationSpots": [
+    {
+     "location": "Cross Cut Rd, Gandhipuram",
+     "lat": 11.0167,
+     "lng": 76.9636
+    },
+    {
+     "location": "Oppanakara St, Town Hall",
+     "lat": 10.9951,
+     "lng": 76.9588
+    },
+    {
+     "location": "Big Bazaar St",
+     "lat": 10.9938,
+     "lng": 76.9632
+    },
+    {
+     "location": "100 Feet Rd, Gandhipuram",
+     "lat": 11.0209,
+     "lng": 76.9611
+    },
+    {
+     "location": "Avinashi Rd, Lakshmi Mills",
+     "lat": 11.0104,
+     "lng": 76.9858
+    },
+    {
+     "location": "DB Rd, RS Puram",
+     "lat": 11.0092,
+     "lng": 76.9514
+    },
+    {
+     "location": "Trichy Rd, Ramanathapuram",
+     "lat": 10.9951,
+     "lng": 76.9926
+    },
+    {
+     "location": "Mettupalayam Rd, Saibaba Colony",
+     "lat": 11.0245,
+     "lng": 76.9451
+    },
+    {
+     "location": "Nanjappa Rd, near Bus Stand",
+     "lat": 11.0149,
+     "lng": 76.9697
+    },
+    {
+     "location": "Raja St, Town Hall",
+     "lat": 10.9962,
+     "lng": 76.9571
+    },
+    {
+     "location": "Sathy Rd, Ganapathy",
+     "lat": 11.0362,
+     "lng": 76.9788
+    },
+    {
+     "location": "Race Course Rd, near Collectorate",
+     "lat": 11.0007,
+     "lng": 76.9741
+    }
+   ],
+   "units": [
+    {
+     "id": "U-CB-01",
+     "name": "Patrol C-01 (Gandhipuram)",
+     "zoneId": "z-central",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-CB-T1",
+     "name": "Tow Truck TW-1 (Central)",
+     "zoneId": "z-central",
+     "kind": "tow"
+    },
+    {
+     "id": "U-CB-W1",
+     "name": "Warden Team W-1 (Town Hall)",
+     "zoneId": "z-central",
+     "kind": "warden"
+    },
+    {
+     "id": "U-CB-04",
+     "name": "Patrol E-04 (Avinashi Rd)",
+     "zoneId": "z-east",
+     "kind": "patrol"
+    },
+    {
+     "id": "U-CB-06",
+     "name": "Patrol N-06 (Saravanampatti)",
+     "zoneId": "z-north",
+     "kind": "patrol"
+    }
+   ],
+   "vmsBoards": [
+    {
+     "id": "VMS-CB-01",
+     "name": "100 Feet Rd VMS",
+     "lat": 11.0215,
+     "lng": 76.961,
+     "zoneId": "z-central"
+    },
+    {
+     "id": "VMS-CB-02",
+     "name": "Avinashi Rd VMS",
+     "lat": 11.012,
+     "lng": 76.99,
+     "zoneId": "z-east"
+    }
+   ]
+  }
+ ]
+}

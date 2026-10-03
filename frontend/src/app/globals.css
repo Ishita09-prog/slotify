@@ -1,0 +1,285 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Concrete daylight */
+    --background: 214 22% 94%;
+    --foreground: 222 38% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 38% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 38% 13%;
+    /* Parking-sign blue */
+    --primary: 224 100% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 22% 88%;
+    --secondary-foreground: 222 38% 15%;
+    --muted: 214 20% 90%;
+    --muted-foreground: 218 14% 40%;
+    /* Lane-marking yellow */
+    --accent: 44 86% 62%;
+    --accent-foreground: 222 38% 12%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 216 20% 83%;
+    --input: 216 20% 80%;
+    --ring: 224 100% 59%;
+    --radius: 0.9rem;
+
+    --glass: 0 0% 100%;
+    --glass-alpha: 0.66;
+    --grid-line: 218 20% 70%;
+    --asphalt: 220 30% 18%;
+
+    --status-available: 142 71% 40%;
+    --status-reserved: 45 93% 47%;
+    --status-occupied: 0 78% 55%;
+    --status-selected: 221 90% 56%;
+    --status-maintenance: 215 14% 52%;
+  }
+
+  .dark {
+    /* Night asphalt */
+    --background: 221 35% 8%;
+    --foreground: 214 30% 94%;
+    --card: 221 32% 12%;
+    --card-foreground: 214 30% 94%;
+    --popover: 221 32% 12%;
+    --popover-foreground: 214 30% 94%;
+    --primary: 224 100% 64%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 221 26% 17%;
+    --secondary-foreground: 214 30% 94%;
+    --muted: 221 26% 16%;
+    --muted-foreground: 216 16% 66%;
+    --accent: 44 86% 62%;
+    --accent-foreground: 222 38% 10%;
+    --destructive: 0 72% 56%;
+    --border: 221 22% 21%;
+    --input: 221 22% 24%;
+    --ring: 224 100% 64%;
+
+    --glass: 221 32% 13%;
+    --glass-alpha: 0.58;
+    --grid-line: 221 30% 22%;
+    --asphalt: 221 28% 15%;
+
+    --status-available: 142 64% 45%;
+    --status-reserved: 45 93% 52%;
+    --status-occupied: 0 80% 60%;
+    --status-selected: 221 95% 64%;
+    --status-maintenance: 215 14% 45%;
+  }
+
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  .glass {
+    background: hsl(var(--glass) / var(--glass-alpha));
+    backdrop-filter: blur(18px) saturate(150%);
+    -webkit-backdrop-filter: blur(18px) saturate(150%);
+    border: 1px solid hsl(var(--border) / 0.75);
+    box-shadow: 0 1px 0 hsl(0 0% 100% / 0.06) inset, 0 12px 32px -18px hsl(222 60% 10% / 0.35);
+  }
+
+  /* Street-map backdrop: a loose city block grid with two arterial roads */
+  .city-backdrop {
+    background-color: hsl(var(--background));
+    background-image:
+      radial-gradient(60rem 30rem at 85% -10%, hsl(var(--primary) / 0.16), transparent 60%),
+      radial-gradient(40rem 24rem at -10% 110%, hsl(var(--accent) / 0.10), transparent 60%),
+      linear-gradient(hsl(var(--grid-line) / 0.35) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--grid-line) / 0.35) 1px, transparent 1px),
+      linear-gradient(hsl(var(--grid-line) / 0.18) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--grid-line) / 0.18) 1px, transparent 1px);
+    background-size: auto, auto, 160px 160px, 160px 160px, 32px 32px, 32px 32px;
+    background-attachment: fixed;
+  }
+
+  /* Number plate (Indian HSRP style) */
+  .plate {
+    font-family: "Archivo Variable", sans-serif;
+    font-variation-settings: "wdth" 80;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    @apply inline-flex items-center gap-1.5 rounded-md border-2 border-foreground/80 bg-white px-2 py-0.5 text-[0.8rem] text-slate-900;
+  }
+  .plate::before {
+    content: "IND";
+    @apply rounded-sm bg-primary px-1 text-[0.55rem] font-bold leading-4 tracking-normal text-white;
+  }
+
+  /* Painted-bay hatch for maintenance */
+  .bay-hatch {
+    background-image: repeating-linear-gradient(
+      -45deg,
+      hsl(var(--status-maintenance) / 0.55) 0 6px,
+      hsl(var(--status-maintenance) / 0.2) 6px 12px
+    );
+  }
+
+  /* Driving lane with dashed yellow centre line */
+  .lane-line {
+    background-image: linear-gradient(90deg, hsl(var(--accent)) 0 24px, transparent 24px 48px);
+    background-size: 48px 3px;
+    background-repeat: repeat-x;
+    background-position: 0 center;
+  }
+}
+
+/* Leaflet theming */
+.leaflet-container {
+  font-family: inherit;
+  background: hsl(var(--muted));
+  border-radius: calc(var(--radius) - 2px);
+}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 10px 30px -10px rgb(0 0 0 / 0.4);
+}
+.leaflet-popup-content {
+  margin: 12px 14px;
+}
+.leaflet-control-attribution {
+  font-size: 10px;
+}
+.dark .leaflet-control-attribution {
+  background: hsl(var(--card) / 0.8) !important;
+  color: hsl(var(--muted-foreground));
+}
+.dark .leaflet-control-attribution a {
+  color: hsl(var(--primary));
+}
+.slotify-pin {
+  background: transparent;
+  border: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------- Command Centre (always dark, mission-control) ---------------- */
+.cc-root {
+  --cc-bg: 222 47% 5%;
+  --cc-panel: 222 40% 8%;
+  --cc-line: 218 30% 18%;
+  --cc-dim: 216 18% 58%;
+  --cc-glow: 199 89% 58%;
+  background-color: hsl(var(--cc-bg));
+  background-image:
+    radial-gradient(70rem 40rem at 70% -20%, hsl(var(--cc-glow) / 0.08), transparent 60%),
+    linear-gradient(hsl(var(--cc-line) / 0.25) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--cc-line) / 0.25) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+}
+.cc-panel {
+  position: relative;
+  background: hsl(var(--cc-panel) / 0.92);
+  border: 1px solid hsl(var(--cc-line));
+  border-radius: 10px;
+  box-shadow: 0 0 0 1px hsl(0 0% 100% / 0.02) inset, 0 20px 40px -24px rgb(0 0 0 / 0.7);
+}
+.cc-panel::before,
+.cc-panel::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: hsl(var(--cc-glow) / 0.55);
+  pointer-events: none;
+}
+.cc-panel::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid;
+  border-left: 2px solid;
+  border-top-left-radius: 10px;
+}
+.cc-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid;
+  border-right: 2px solid;
+  border-bottom-right-radius: 10px;
+}
+.cc-label {
+  @apply text-[10px] font-semibold uppercase tracking-[0.14em];
+  color: hsl(var(--cc-dim));
+}
+.cc-mono {
+  font-family: ui-monospace, "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-feature-settings: "tnum" 1;
+}
+.cc-root .leaflet-container {
+  background: #0b1220;
+  border-radius: 8px;
+}
+.cc-zone-label {
+  background: hsl(222 47% 6% / 0.82) !important;
+  border: 1px solid hsl(218 30% 22%) !important;
+  color: #e2e8f0 !important;
+  box-shadow: none !important;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 1px 6px !important;
+  border-radius: 4px !important;
+}
+.cc-zone-label::before {
+  display: none;
+}
+@keyframes cc-ping {
+  0% { transform: scale(0.6); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.cc-ping {
+  animation: cc-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ---------- Portals: glassmorphism + Apple-style type ---------- */
+.portal-root {
+  background: radial-gradient(80rem 50rem at 50% -20%, hsl(222 60% 14%), hsl(225 45% 5%) 60%);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Public Sans Variable", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+.portal-title {
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  background: linear-gradient(180deg, #fff 30%, hsl(215 30% 72%));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.glass-card {
+  background: linear-gradient(180deg, hsl(0 0% 100% / 0.09), hsl(0 0% 100% / 0.035));
+  border: 1px solid hsl(0 0% 100% / 0.12);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.12), 0 30px 80px -30px hsl(225 80% 2% / 0.8);
+}
