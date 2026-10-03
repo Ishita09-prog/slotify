@@ -29,6 +29,7 @@ const NAV: Record<Role, { title: string; subtitle: string; items: { href: string
       { href: "/user/predict", label: "AI forecast", icon: BrainCircuit },
       { href: "/user/bookings", label: "My bookings", icon: Ticket },
       { href: "/user/notices", label: "Notices", icon: Siren },
+      { href: "/user/complaints", label: "Fraud Complaint", icon: ShieldAlert },
       { href: "/user/wallet", label: "FASTag", icon: Wallet },
       { href: "/user/profile", label: "Profile", icon: UserRound },
     ],
@@ -41,6 +42,7 @@ const NAV: Record<Role, { title: string; subtitle: string; items: { href: string
       { href: "/owner/gate", label: "FASTag gate", icon: ScanLine },
       { href: "/owner/cameras", label: "Cameras", icon: Cctv },
       { href: "/owner/bookings", label: "Bookings", icon: Ticket },
+      { href: "/owner/complaints", label: "Fraud Complaints", icon: ShieldAlert },
     ],
   },
   police: {
@@ -188,7 +190,7 @@ function BottomTabs({ role }: { role: Role }) {
         return (
           <Link key={it.href} href={it.href} className={cn("flex flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold transition-colors", active ? "bg-primary/15 text-primary" : "text-muted-foreground")}>
             <Icon className="size-5" />
-            <span className="max-w-full truncate px-0.5">{it.label.replace("My ", "").replace("AI forecast", "Forecast").replace("Find parking", "Find")}</span>
+            <span className="max-w-full truncate px-0.5">{it.label.replace("My ", "").replace("AI forecast", "Forecast").replace("Find parking", "Find").replace("Fraud Complaints", "Fraud").replace("Fraud Complaint", "Fraud")}</span>
           </Link>
         );
       })}

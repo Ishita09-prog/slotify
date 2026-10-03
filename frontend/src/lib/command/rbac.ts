@@ -14,7 +14,8 @@ export type Permission =
   | "audit.view"
   | "audit.verify"
   | "slots.manage"
-  | "challan.issue";
+  | "challan.issue"
+  | "dispute.manage";
 
 export const ROLES: Record<RoleId, { label: string; description: string; permissions: Permission[]; home: string }> = {
   command: {
@@ -22,7 +23,7 @@ export const ROLES: Record<RoleId, { label: string; description: string; permiss
     description: "City command centre (ULB). Full situational view, approves all actions, runs drills.",
     permissions: [
       "command.view", "incident.approve", "incident.approve_enforcement", "incident.assign", "incident.resolve",
-      "scenario.run", "health.chaos", "report.generate", "audit.view", "audit.verify", "slots.manage",
+      "scenario.run", "health.chaos", "report.generate", "audit.view", "audit.verify", "slots.manage", "dispute.manage",
     ],
     home: "/command",
   },
