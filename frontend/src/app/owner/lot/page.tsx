@@ -97,6 +97,7 @@ function LotManage() {
               <span><b className="text-status-reserved">{st.booked + st.holding}</b> booked</span>
               <span><b className="text-status-occupied">{st.parked}</b> parked</span>
               <span className="text-muted-foreground">{st.maint} closed</span>
+              {st.bike > 0 && <span>🛵 <b className="text-status-available">{st.bikeFree}</b>/{st.bike} bike</span>}
             </div>
             <Select aria-label="View" value={view} onChange={(e) => setView(e.target.value)} className="w-auto min-w-48">
               <option value="now">Right now</option>
@@ -154,6 +155,7 @@ function LotManage() {
                   <option value="standard">Standard</option>
                   <option value="ev">EV</option>
                   <option value="accessible">Accessible</option>
+                  <option value="bike">Two-wheeler</option>
                 </Select>
               </div>
             </div>

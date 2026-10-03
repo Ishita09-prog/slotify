@@ -3,6 +3,7 @@ import { istDateKey, slotKey, windowRange } from "./time";
 import { haversineKm } from "../utils";
 import type { CityConfig } from "../cities";
 import { asParkingLot, lotStats } from "./view";
+import { bikeRate } from "./types";
 import type { Bay, LiveLot } from "./types";
 
 /* ------------------------------------------------------------------ */
@@ -147,26 +148,29 @@ export interface Ranked {
 export function rankLots(
   lots: LiveLot[],
   bays: Bay[],
-  opts: { origin?: { lat: number; lng: number } | null; inMin?: number; mode: "timed" | "open"; ev?: boolean; accessible?: boolean; cheap?: boolean },
+  opts: { origin?: { lat: number; lng: number } | null; inMin?: number; mode: "timed" | "open"; ev?: boolean; accessible?: boolean; cheap?: boolean; bike?: boolean },
   now = Date.now()
 ): Ranked[] {
   const model = modelIfLoaded();
-  const eligible = lots.filter((l) => (opts.mode === "open" ? l.allowOpen : l.allowTimed));
-  const prices = eligible.map((l) => l.pricePerHour);
+  const eligible = lots
+    .filter((l) => (opts.mode === "open" ? l.allowOpen : l.allowTimed))
+    .filter((l) => !opts.bike || bays.some((b) => b.lotId === l.id && b.type === "bike"));
+  const price = (l: LiveLot) => (opts.bike ? bikeRate(l) : l.pricePerHour);
+  const prices = eligible.map(price);
   const minP = Math.min(...prices, 9999);
   const out = eligible.map((lot) => {
-    const st = lotStats(lot, bays, now);
+    const st = lotStats(lot, bays, now, opts.bike ? { mode: "open", vehicle: "bike" } : null);
     const free = opts.ev ? st.evFree : opts.accessible ? st.accFree : st.free;
     const km = opts.origin ? haversineKm(opts.origin, lot) : null;
     const reasons: string[] = [];
     let forecast: Ranked["forecast"];
     const at = now + Math.max(15, opts.inMin ?? 15) * 60_000;
-    const pr = predictAt(lot, bays, at, now, { ev: opts.ev, accessible: opts.accessible });
+    const pr = predictAt(lot, bays, at, now, { ev: opts.ev, accessible: opts.accessible, bike: opts.bike });
     if (pr) forecast = { occupancy: pr.occupancy, low: pr.low, high: pr.high, at, confidence: pr.confidence, freeMean: pr.freeMean, freeLow: pr.freeLow, freeHigh: pr.freeHigh, chance: pr.chance, booked: pr.booked, range: pr.range };
     // lower score = better
     let score = 0;
     score += km != null ? km * 1.2 : 0;
-    score += (lot.pricePerHour - minP) / (opts.cheap ? 8 : opts.origin ? 60 : 25);
+    score += (price(lot) - minP) / (opts.cheap ? 8 : opts.origin ? 60 : 25);
     const future = (opts.inMin ?? 0) > 20;
     score += (forecast ? forecast.occupancy : st.occupancy) * 4;
     if (forecast) score += (1 - forecast.chance) * 30;
@@ -175,8 +179,8 @@ export function rankLots(
       else if (free <= 2) score += 3;
     }
     if (km != null) reasons.push(km < 1 ? `${Math.round(km * 1000)} m away` : `${km.toFixed(1)} km away`);
-    if (!future || !forecast) reasons.push(`${free} ${opts.ev ? "EV " : opts.accessible ? "accessible " : ""}bay${free === 1 ? "" : "s"} free now`);
-    if (lot.pricePerHour === minP && eligible.length > 1) reasons.push(`cheapest at ₹${lot.pricePerHour}/h`);
+    if (!future || !forecast) reasons.push(`${free} ${opts.ev ? "EV " : opts.accessible ? "accessible " : opts.bike ? "two-wheeler " : ""}bay${free === 1 ? "" : "s"} free now`);
+    if (price(lot) === minP && eligible.length > 1) reasons.push(`cheapest at ₹${price(lot)}/h`);
     let warn: string | undefined;
     if (forecast) {
       reasons.push(`AI: ~${forecast.freeMean} free on arrival (${Math.round(forecast.chance * 100)}% chance of a spot)`);
@@ -212,11 +216,11 @@ function erf(x: number) {
 const normCdf = (z: number) => 0.5 * (1 + erf(z / Math.SQRT2));
 
 /** Bookings already confirmed in the database that will be holding a bay at `at` (certain, not predicted). */
-export function bookedAt(lot: LiveLot, bays: Bay[], at: number, now: number) {
+export function bookedAt(lot: LiveLot, bays: Bay[], at: number, now: number, bike = false) {
   let n = 0;
   const d = istDateKey(at);
   for (const b of bays) {
-    if (b.lotId !== lot.id || !b.active) continue;
+    if (b.lotId !== lot.id || !b.active || (b.type === "bike") !== bike) continue;
     let hit = false;
     for (const w of lot.windows) {
       const r = windowRange(d, w);
@@ -246,13 +250,13 @@ export interface Prediction {
   factors: Factor[];
 }
 
-export function predictAt(lot: LiveLot, bays: Bay[], at: number, now = Date.now(), need: { ev?: boolean; accessible?: boolean } = {}): Prediction | null {
-  const st = lotStats(lot, bays, now);
+export function predictAt(lot: LiveLot, bays: Bay[], at: number, now = Date.now(), need: { ev?: boolean; accessible?: boolean; bike?: boolean } = {}): Prediction | null {
+  const st = lotStats(lot, bays, now, need.bike ? { mode: "open", vehicle: "bike" } : null);
   if (!st.usable) return null;
   const f = forecastAt(asParkingLot(lot, st.total), now, st.occupancy, at);
   if (!f) return null;
   const usable = st.usable;
-  const booked = bookedAt(lot, bays, at, now);
+  const booked = bookedAt(lot, bays, at, now, !!need.bike);
   // demand from the model, never below what is already confirmed
   const occ = (x: number) => Math.min(usable, Math.max(booked, x * usable));
   const mean = occ(f.occupancy), lo = occ(f.low), hi = occ(f.high);

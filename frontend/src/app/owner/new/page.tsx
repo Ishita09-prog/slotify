@@ -50,6 +50,8 @@ export default function NewLotPage() {
   const [perRow, setPerRow] = useState(8);
   const [evBays, setEvBays] = useState(2);
   const [accBays, setAccBays] = useState(1);
+  const [bikes, setBikes] = useState(6);
+  const [bikePrice, setBikePrice] = useState(15);
   const [modes, setModes] = useState({ allowTimed: true, allowOpen: true });
   const [windows, setWindows] = useState<TimeWindow[]>(DEFAULT_WINDOWS);
   const [hours, setHours] = useState("08:00 – 23:00");
@@ -85,13 +87,14 @@ export default function NewLotPage() {
           lng: pos.lng,
           pricePerHour: price,
           evPerHour: ev,
+          bikePerHour: bikePrice,
           allowOpen: modes.allowOpen,
           allowTimed: modes.allowTimed,
           windows: modes.allowTimed ? windows : [],
           openHours: hours,
           features: evBays > 0 && !features.includes("EV charging") ? [...features, "EV charging"] : features,
         },
-        { rows, perRow, ev: evBays, accessible: accBays }
+        { rows, perRow, ev: evBays, accessible: accBays, bikes }
       );
       toast.success(`${lot.name} is live with ${total} bays`);
       router.replace(`/owner/lot?id=${lot.id}`);
@@ -158,6 +161,8 @@ export default function NewLotPage() {
               <Num label="Accessible bays" value={accBays} set={setAccBays} min={0} max={total} />
               <Num label="Price / hour (₹)" value={price} set={setPrice} min={5} max={500} />
               <Num label="EV charge / hour (₹)" value={ev} set={setEv} min={0} max={200} />
+              <Num label="Two-wheeler bays" value={bikes} set={setBikes} min={0} max={48} />
+              <Num label="Bike price / hour (₹)" value={bikePrice} set={setBikePrice} min={0} max={200} />
             </div>
             <div className="mt-3 space-y-1.5">
               <Label htmlFor="hours">Open hours</Label>
@@ -171,8 +176,8 @@ export default function NewLotPage() {
               ))}
             </div>
             <div className="mt-4 rounded-xl bg-secondary/50 p-3 text-sm">
-              <p><b className="font-display text-2xl">{total}</b> bays · {category && CATEGORIES.find((c) => c.key === category)?.label}</p>
-              <p className="text-xs text-muted-foreground">{formatINR(price)}/h · ₹25 cover charge per booking · {[modes.allowTimed && "time slots", modes.allowOpen && "no time limit"].filter(Boolean).join(" + ")}</p>
+              <p><b className="font-display text-2xl">{total}</b> car bays{bikes ? <> + <b className="font-display text-2xl">{bikes}</b> 🛵</> : null} · {category && CATEGORIES.find((c) => c.key === category)?.label}</p>
+              <p className="text-xs text-muted-foreground">{formatINR(price)}/h car · {formatINR(bikePrice)}/h bike · cover ₹25 car / ₹10 bike · {[modes.allowTimed && "time slots", modes.allowOpen && "no time limit"].filter(Boolean).join(" + ")}</p>
             </div>
             <div className="mt-3 space-y-1.5">
               <Label htmlFor="cat">Type of place (used by the AI forecast)</Label>

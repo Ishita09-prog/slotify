@@ -21,6 +21,8 @@ const VIOLATIONS: [string, number][] = [
   ["Bus stop obstruction", 1000],
   ["Parked on footpath", 500],
   ["Overstay in paid bay", 300],
+  ["Two-wheeler on footpath", 500],
+  ["Two-wheeler in car bay", 300],
 ];
 
 const STATUS: Record<PoliceNotice["status"], { label: string; cls: string }> = {

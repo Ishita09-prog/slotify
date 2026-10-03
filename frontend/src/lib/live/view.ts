@@ -13,6 +13,7 @@ export function bayState(bay: Bay, lot: LiveLot, uid: string | null, now: number
     const w = currentWindow(lot.windows, now);
     return w ? bay.slots?.[slotKey(istDateKey(now), w.id)] : undefined;
   })();
+  if (req?.vehicle && (req.vehicle === "bike") !== (bay.type === "bike")) return { state: "maintenance", reason: req.vehicle === "bike" ? "Car bay" : "Two-wheeler bay" };
   if (req) {
     const occ = req.mode === "timed" && req.dateKey && req.window ? bay.slots?.[slotKey(req.dateKey, req.window.id)] ?? (req.dateKey === istDateKey(now) ? bay.open ?? undefined : undefined) : bay.open ?? undefined;
     if (occ?.uid === uid) return { state: "mine", vehicle: occ.vehicle };
@@ -44,9 +45,15 @@ export function toSlot(bay: Bay, s: ReturnType<typeof bayState>, showVehicle = f
 
 export function lotStats(lot: LiveLot, bays: Bay[], now: number, req: BookingRequest | null = null, uid: string | null = null) {
   const mine = bays.filter((b) => b.lotId === lot.id);
-  let free = 0, booked = 0, parked = 0, holding = 0, maint = 0, ev = 0, evFree = 0, acc = 0, accFree = 0;
+  let free = 0, booked = 0, parked = 0, holding = 0, maint = 0, ev = 0, evFree = 0, acc = 0, accFree = 0, bike = 0, bikeFree = 0;
+  const forBike = req?.vehicle === "bike";
   for (const b of mine) {
     const s = bayState(b, lot, uid, now, req).state;
+    if (b.type === "bike") {
+      bike++;
+      if (s === "free") bikeFree++;
+    }
+    if ((b.type === "bike") !== forBike) continue; // counts below are for the vehicle kind being parked (cars by default)
     if (s === "free") free++;
     else if (s === "parked") parked++;
     else if (s === "holding") holding++;
@@ -61,8 +68,9 @@ export function lotStats(lot: LiveLot, bays: Bay[], now: number, req: BookingReq
       if (s === "free") accFree++;
     }
   }
-  const usable = mine.length - maint;
-  return { total: mine.length, usable, free, booked, parked, holding, maint, ev, evFree, acc, accFree, occupancy: usable ? (usable - free) / usable : 0 };
+  const total = mine.filter((b) => (b.type === "bike") === forBike).length;
+  const usable = total - maint;
+  return { total, usable, free, booked, parked, holding, maint, ev, evFree, acc, accFree, bike, bikeFree, occupancy: usable ? (usable - free) / usable : 0 };
 }
 
 /** Shape the ML forecaster expects. New lots have no history, so the model falls back to the category demand curve. */

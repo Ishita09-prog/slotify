@@ -13,7 +13,7 @@ import { useLive, useTick } from "@/lib/live/provider";
 import { book, holdBay, LowBalance, recharge, releaseBay, type BookingRequest } from "@/lib/live/service";
 import { UserError } from "@/lib/live/store";
 import { fmtDateTime, fmtTime, windowHours } from "@/lib/live/time";
-import { COVER, type Bay, type LiveBooking, type LiveLot, type PayMethod, type Vehicle } from "@/lib/live/types";
+import { bikeRate, coverFor, type Bay, type LiveBooking, type LiveLot, type PayMethod, type Vehicle } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
 
 type Step = "review" | "pay" | "busy" | "done";
@@ -50,8 +50,10 @@ export function BookDialog({
   const [passQr, setPassQr] = useState<string | null>(null);
   const booked = useRef(false);
   const balance = live.account?.fastag?.balance ?? 0;
+  const COVER = coverFor(vehicle.type);
   const low = balance < COVER;
-  const est = req.mode === "timed" && req.window ? windowHours(req.window) * (lot.pricePerHour + (bay.type === "ev" ? lot.evPerHour : 0)) : null;
+  const rate = bay.type === "bike" ? bikeRate(lot) : lot.pricePerHour + (bay.type === "ev" ? lot.evPerHour : 0);
+  const est = req.mode === "timed" && req.window ? windowHours(req.window) * rate : null;
 
   // Lock the bay in the database while this driver pays — other phones see it amber instantly.
   useEffect(() => {
@@ -140,7 +142,7 @@ export function BookDialog({
               <div className="mt-4 rounded-xl border bg-secondary/30 p-4">
                 <Row l="Vehicle" v={<b className="font-display tracking-wider">{vehicle.number}</b>} />
                 <Row l={req.mode === "timed" ? "Time slot" : "Arrive by"} v={req.mode === "timed" ? `${req.window?.start}–${req.window?.end}` : fmtTime(Date.now() + (arriveInMin + 15) * 60_000)} />
-                <Row l="Parking fee" v={est != null ? `${formatINR(est)} for the slot` : `${formatINR(lot.pricePerHour + (bay.type === "ev" ? lot.evPerHour : 0))}/h, pay for time used`} />
+                <Row l="Parking fee" v={est != null ? `${formatINR(est)} for the slot` : `${formatINR(rate)}/h, pay for time used`} />
                 <Row l="Cover charge · pay now" v={formatINR(COVER)} strong />
               </div>
               <p className="mt-3 rounded-lg bg-primary/10 p-3 text-xs leading-relaxed">

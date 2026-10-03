@@ -29,6 +29,7 @@ export interface PlateRead {
   text: string; // Indian-normalised
   conf: number; // mean char probability
   valid: boolean; // matches Indian format
+  twoLine?: boolean; // square plate (two-wheeler / auto)
 }
 
 type Src = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement;
@@ -82,10 +83,8 @@ export async function readPlates(source: Src, minScore = 0.35): Promise<PlateRea
   c2.width = 128;
   c2.height = 64;
   const x2 = c2.getContext("2d", { willReadFrequently: true })!;
-  const reads: PlateRead[] = [];
-  for (const b of boxes.sort((a, z) => z.s - a.s).slice(0, 4)) {
-    if (b.w < 8 || b.h < 4) continue;
-    x2.drawImage(source, b.x, b.y, b.w, b.h, 0, 0, 128, 64);
+  const ocrRegion = async (x: number, y: number, w: number, h: number) => {
+    x2.drawImage(source, x, y, w, h, 0, 0, 128, 64);
     const p = x2.getImageData(0, 0, 128, 64).data;
     const u8 = new Uint8Array(128 * 64 * 3);
     for (let i = 0; i < 128 * 64; i++) {
@@ -94,8 +93,7 @@ export async function readPlates(source: Src, minScore = 0.35): Promise<PlateRea
       u8[i * 3 + 2] = p[i * 4 + 2];
     }
     const o = await ocrS.run({ [ocrS.inputNames[0]]: new ort.Tensor("uint8", u8, [1, 64, 128, 3]) });
-    const plate = o.plate ?? o[ocrS.outputNames[0]];
-    const probs = plate.data as Float32Array; // [1, 10, 37]
+    const probs = (o.plate ?? o[ocrS.outputNames[0]]).data as Float32Array; // [1, 10, 37]
     let raw = "", sum = 0, n = 0;
     for (let k = 0; k < 10; k++) {
       let bi = 0, bp = -1;
@@ -106,15 +104,31 @@ export async function readPlates(source: Src, minScore = 0.35): Promise<PlateRea
           bi = c;
         }
       }
-      const ch = ALPHABET[bi];
-      if (ch !== "_") {
-        raw += ch;
+      if (ALPHABET[bi] !== "_") {
+        raw += ALPHABET[bi];
         sum += bp;
         n++;
       }
     }
-    const fixed = indianPlate(raw);
-    reads.push({ box: b, detScore: b.s, raw, text: fixed.text, conf: n ? sum / n : 0, valid: fixed.valid });
+    return { raw, conf: n ? sum / n : 0 };
+  };
+  const reads: PlateRead[] = [];
+  for (const b of boxes.sort((a, z) => z.s - a.s).slice(0, 4)) {
+    if (b.w < 8 || b.h < 4) continue;
+    let best = await ocrRegion(b.x, b.y, b.w, b.h);
+    let fixed = indianPlate(best.raw);
+    // Two-line plates (two-wheelers, autos): if the box is squarish and the single read isn't a valid
+    // Indian number, read the top and bottom halves separately and join them.
+    if (b.w / b.h < 2.3 && !fixed.valid) {
+      const top = await ocrRegion(b.x, b.y, b.w, b.h * 0.56);
+      const bot = await ocrRegion(b.x, b.y + b.h * 0.44, b.w, b.h * 0.56);
+      const joined = indianPlate(top.raw + bot.raw);
+      if (joined.valid || (top.raw + bot.raw).length > best.raw.length) {
+        best = { raw: top.raw + bot.raw, conf: (top.conf + bot.conf) / 2 };
+        fixed = joined;
+      }
+    }
+    reads.push({ box: b, detScore: b.s, raw: best.raw, text: fixed.text, conf: best.conf, valid: fixed.valid, twoLine: b.w / b.h < 2.3 });
   }
   return reads;
 }

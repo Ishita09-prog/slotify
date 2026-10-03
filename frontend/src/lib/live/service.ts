@@ -2,7 +2,7 @@ import type { SlotType } from "../types";
 import { cleanUsername, UserError, type Store } from "./store";
 import { istDateKey, slotKey, windowRange, windowHours } from "./time";
 import {
-  COVER, HOLD_MS, NO_SHOW_GRACE_MS,
+  HOLD_MS, NO_SHOW_GRACE_MS, bikeRate, coverFor,
   type Account, type Bay, type LiveBooking, type LiveLot, type Occupant, type PayMethod, type PoliceNotice, type Role, type TimeWindow, type Txn, type Vehicle,
 } from "./types";
 
@@ -66,7 +66,7 @@ export async function createLot(
   store: Store,
   owner: Account,
   lot: Omit<LiveLot, "id" | "ownerUid" | "ownerName" | "createdAt" | "rows">,
-  layout: { rows: number; perRow: number; ev: number; accessible: number }
+  layout: { rows: number; perRow: number; ev: number; accessible: number; bikes?: number }
 ) {
   const id = store.newId();
   const full: LiveLot = { ...lot, id, ownerUid: owner.id, ownerName: owner.business || owner.name, createdAt: Date.now(), rows: layout.rows };
@@ -81,6 +81,10 @@ export async function createLot(
       bays.push(newBay(full, ROW_LETTERS[r], c, type));
     }
   }
+  // two-wheeler rows (row letters after the car rows), up to 12 per row
+  const nb = layout.bikes ?? 0;
+  for (let i = 0; i < nb; i++) bays.push(newBay(full, ROW_LETTERS[layout.rows + Math.floor(i / 12)], (i % 12) + 1, "bike"));
+  if (nb) await store.set("lots", id, { ...full, rows: layout.rows + Math.ceil(nb / 12) });
   await Promise.all(bays.map((b) => store.set("bays", b.id, b)));
   return full;
 }
@@ -116,6 +120,8 @@ export async function updateLot(store: Store, lot: LiveLot) {
 
 export interface BookingRequest {
   mode: "timed" | "open";
+  /** vehicle being parked: two-wheelers use bike bays only, cars never take bike bays */
+  vehicle?: Vehicle["type"];
   dateKey?: string;
   window?: TimeWindow;
 }
@@ -123,6 +129,8 @@ export interface BookingRequest {
 /** Why this bay can't take the request (null = free). Same rule the transaction enforces. */
 export function conflict(bay: Bay, lot: LiveLot, req: BookingRequest, now: number): string | null {
   if (!bay.active) return "Under maintenance";
+  if (req.vehicle === "bike" && bay.type !== "bike") return "Car bay";
+  if (req.vehicle && req.vehicle !== "bike" && bay.type === "bike") return "Two-wheeler bay";
   const today = istDateKey(now);
   if (req.mode === "timed") {
     if (!req.dateKey || !req.window) return "Pick a time slot";
@@ -194,6 +202,7 @@ export async function book(
     if (bay.hold && bay.hold.uid !== driver.id && bay.hold.until > now) throw new UserError("Someone else is booking this bay right now.");
     const why = conflict(bay, lot, req, now);
     if (why) throw new UserError(`Bay ${bay.label} was just taken (${why.toLowerCase()}). Pick another bay.`);
+    const COVER = coverFor(vehicle.type);
     if (method === "fastag") {
       if (!acc.fastag) throw new UserError("No FASTag linked.");
       if (acc.fastag.balance < COVER) throw new LowBalance(acc.fastag.balance, COVER);
@@ -220,7 +229,7 @@ export async function book(
       status: "booked",
       cover: COVER,
       coverMethod: method,
-      pricePerHour: lot.pricePerHour + (bay.type === "ev" ? lot.evPerHour : 0),
+      pricePerHour: bay.type === "bike" ? bikeRate(lot) : lot.pricePerHour + (bay.type === "ev" ? lot.evPerHour : 0),
       createdAt: now,
     };
     const occ: Occupant = { bookingId: id, uid: driver.id, vehicle: vehicle.number, status: "booked", at: now };

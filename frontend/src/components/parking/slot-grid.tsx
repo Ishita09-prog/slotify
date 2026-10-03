@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Accessibility, ArrowUp, ChevronsLeft, ChevronsRight, Zap } from "lucide-react";
+import { Accessibility, ArrowUp, Bike, ChevronsLeft, ChevronsRight, Zap } from "lucide-react";
 import type { Slot } from "@/lib/types";
 import { useNow } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -56,6 +56,7 @@ function Bay({
     >
       {slot.type === "ev" && <Zap className="size-3" aria-hidden />}
       {slot.type === "accessible" && <Accessibility className="size-3" aria-hidden />}
+      {slot.type === "bike" && <Bike className="size-3" aria-hidden />}
       <span className="font-display" style={{ fontVariationSettings: '"wdth" 85' }}>{slot.id}</span>
       {mine && <span className="absolute -top-2 rounded bg-foreground px-1 text-[9px] leading-3 text-background">You</span>}
     </motion.button>

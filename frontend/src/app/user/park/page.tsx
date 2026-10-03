@@ -18,7 +18,7 @@ import { isPublic, useDriverLots } from "@/lib/live/public";
 import type { BookingRequest } from "@/lib/live/service";
 import { bookableDays, fmtTime, windowHours, windowRange } from "@/lib/live/time";
 import { bayState, lotStats, toSlot } from "@/lib/live/view";
-import { COVER, VEHICLE_LABEL } from "@/lib/live/types";
+import { bikeRate, coverFor, VEHICLE_LABEL } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
 
 const ARRIVALS = [0, 10, 20, 30];
@@ -42,7 +42,10 @@ function Park() {
   useEffect(() => void loadAllModels().then(() => setModelReady(true)), []);
   const [target, setTarget] = useState<number>(() => Date.now() + Math.max(15, Number(params.get("in") ?? 0)) * 60_000);
   useEffect(() => {
-    if (!vehicleNo && live.account?.defaultVehicle) setVehicleNo(live.account.defaultVehicle);
+    if (vehicleNo || !live.account) return;
+    const wantBike = params.get("v") === "bike";
+    const pick = wantBike ? live.account.vehicles.find((v) => v.type === "bike") : live.account.vehicles.find((v) => v.number === live.account?.defaultVehicle && v.type !== "bike") ?? live.account.vehicles.find((v) => v.type !== "bike");
+    setVehicleNo(pick?.number ?? live.account.defaultVehicle ?? "");
   }, [live.account, vehicleNo]);
   useEffect(() => {
     if (lot && mode === "open" && !lot.allowOpen) setMode("timed");
@@ -52,12 +55,16 @@ function Park() {
   const days = bookableDays(now);
   const dayKey = day ?? days[0].key;
   const win = lot?.windows.find((w) => w.id === winId) ?? null;
-  const req: BookingRequest | null = mode === "open" ? { mode: "open" } : win ? { mode: "timed", dateKey: dayKey, window: win } : null;
+  const vType = (live.account?.vehicles ?? []).find((v) => v.number === vehicleNo)?.type ?? live.account?.vehicles?.[0]?.type;
+  const isBike = vType === "bike";
+  const req: BookingRequest | null = mode === "open" ? { mode: "open", vehicle: vType } : win ? { mode: "timed", dateKey: dayKey, window: win, vehicle: vType } : null;
+  const COVER = coverFor(vType);
   const evNeed = useMemo(() => ({ ev: params.get("ev") === "1" }), [params]);
   useEffect(() => {
     if (win) setTarget(windowRange(dayKey, win).start);
   }, [win?.id, dayKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => setSel(null), [vType]);
   const selBay = bays.find((b) => b.label === sel);
   // If someone else takes my selected bay, tell me.
   useEffect(() => {
@@ -133,11 +140,11 @@ function Park() {
                 <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Time slot">
                   {lot.windows.map((w) => {
                     const ended = windowRange(dayKey, w).end <= now;
-                    const free = ended ? 0 : lotStats(lot, bays, now, { mode: "timed", dateKey: dayKey, window: w }, live.uid).free;
+                    const free = ended ? 0 : lotStats(lot, bays, now, { mode: "timed", dateKey: dayKey, window: w, vehicle: vType }, live.uid).free;
                     return (
                       <button key={w.id} role="radio" aria-checked={winId === w.id} disabled={ended} onClick={() => { setWinId(w.id); setSel(null); }} className={cn("rounded-xl border px-2 py-2 text-sm font-semibold tabular-nums transition-colors disabled:opacity-40", winId === w.id ? "border-primary bg-primary text-primary-foreground" : "hover:bg-secondary/60")}>
                         {w.start} – {w.end}
-                        <span className={cn("block text-[10px] font-medium", winId === w.id ? "text-primary-foreground/80" : "text-muted-foreground")}>{ended ? "Ended" : `${free} free · ${formatINR(windowHours(w) * lot.pricePerHour)}`}</span>
+                        <span className={cn("block text-[10px] font-medium", winId === w.id ? "text-primary-foreground/80" : "text-muted-foreground")}>{ended ? "Ended" : `${free} free · ${formatINR(windowHours(w) * (isBike ? bikeRate(lot) : lot.pricePerHour))}`}</span>
                       </button>
                     );
                   })}
@@ -151,7 +158,7 @@ function Park() {
                     <button key={m} onClick={() => setArrive(m)} className={cn("rounded-lg border py-2 text-xs font-semibold", arrive === m ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground")}>{m === 0 ? "Now" : `${m} min`}</button>
                   ))}
                 </div>
-                <p className="text-[11px] text-muted-foreground">Bay held until {fmtTime(now + (arrive + 15) * 60_000)}. Pay {formatINR(lot.pricePerHour)}/h for the time you stay.</p>
+                <p className="text-[11px] text-muted-foreground">Bay held until {fmtTime(now + (arrive + 15) * 60_000)}. Pay {formatINR(isBike ? bikeRate(lot) : lot.pricePerHour)}/h for the time you stay.</p>
               </div>
             )}
 
@@ -165,11 +172,12 @@ function Park() {
                 <p className="rounded-lg border px-3 py-2 font-display font-bold tracking-wider">{vehicle.number} <span className="text-xs font-medium text-muted-foreground">· {VEHICLE_LABEL[vehicle.type]}</span></p>
               ) : <p className="text-sm text-muted-foreground">Add a vehicle in your profile.</p>}
               {vehicle?.type === "ev" && <p className="flex items-center gap-1 text-[11px] text-muted-foreground"><Zap className="size-3" /> Pick a bay with the ⚡ icon to charge.</p>}
+              {isBike && <p className="text-[11px] text-muted-foreground">Two-wheeler: only bike bays (🛵 icon) are open for you · {formatINR(bikeRate(lot))}/h · ₹{COVER} cover.</p>}
             </div>
 
             <div className="rounded-xl bg-secondary/40 p-3 text-sm">
               <div className="flex justify-between"><span className="text-muted-foreground">Bay</span><b>{sel ?? "—"}</b></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Parking fee</span><span>{mode === "timed" && win ? formatINR(windowHours(win) * lot.pricePerHour) : `${formatINR(lot.pricePerHour)}/h`}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Parking fee</span><span>{mode === "timed" && win ? formatINR(windowHours(win) * (isBike ? bikeRate(lot) : lot.pricePerHour)) : `${formatINR(isBike ? bikeRate(lot) : lot.pricePerHour)}/h`}</span></div>
               <div className="mt-1 flex justify-between border-t pt-2 font-display text-base font-extrabold"><span>Pay now</span><span>{formatINR(COVER)}</span></div>
               <p className="text-[11px] text-muted-foreground">Cover charge, adjusted at exit. Non-refundable if you don&apos;t show up.</p>
             </div>

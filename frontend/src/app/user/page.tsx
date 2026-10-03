@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { useCity } from "@/lib/city";
 import { loadAllModels } from "@/lib/ml/forecast";
 import { useSlotify } from "@/lib/store";
+import { bikeRate } from "@/lib/live/types";
 import { liveAccuracy, parseIntent, placesFor, predictAt, rankLots, type Ranked } from "@/lib/live/ai";
 import { useLive, useTick } from "@/lib/live/provider";
 import { isPublic, useDriverLots } from "@/lib/live/public";
@@ -32,6 +33,9 @@ export default function DriverHome() {
   const [modelReady, setModelReady] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const [whenMin, setWhenMin] = useState(0);
+  const defaultKind = live.account?.vehicles?.find((v) => v.number === live.account?.defaultVehicle)?.type === "bike" ? "bike" : "car";
+  const [kindSel, setKind] = useState<"car" | "bike" | null>(null);
+  const kind = kindSel ?? defaultKind;
   const { state: sim } = useSlotify();
 
   useEffect(() => {
@@ -43,18 +47,19 @@ export default function DriverHome() {
   useEffect(() => {
     if (intent?.mode) setMode(intent.mode);
     if (intent?.inMin != null) setWhenMin(intent.inMin);
+    if (intent?.bike) setKind("bike");
   }, [intent]);
   const future = whenMin > 20;
   const at = now + Math.max(15, whenMin) * 60_000;
 
   const origin = intent?.place ?? me ?? null;
   const ranked: Ranked[] = useMemo(
-    () => rankLots(dl.lots, dl.bays, { origin, inMin: whenMin, mode, ev: intent?.ev, accessible: intent?.accessible, cheap: intent?.cheap }, now),
-    [dl.lots, dl.bays, origin, intent, mode, now, modelReady, whenMin] // eslint-disable-line react-hooks/exhaustive-deps
+    () => rankLots(dl.lots, dl.bays, { origin, inMin: whenMin, mode, ev: intent?.ev, accessible: intent?.accessible, cheap: intent?.cheap, bike: kind === "bike" }, now),
+    [dl.lots, dl.bays, origin, intent, mode, now, modelReady, whenMin, kind] // eslint-disable-line react-hooks/exhaustive-deps
   );
   const hidden = dl.lots.length - ranked.length;
   const best = ranked.find((r) => (future ? (r.forecast?.chance ?? 0) > 0.3 : r.free > 0));
-  const bestPred = useMemo(() => (best && modelReady ? predictAt(best.lot, dl.bays, at, now, { ev: intent?.ev, accessible: intent?.accessible }) : null), [best?.lot.id, at, modelReady, dl.bays]); // eslint-disable-line react-hooks/exhaustive-deps
+  const bestPred = useMemo(() => (best && modelReady ? predictAt(best.lot, dl.bays, at, now, { ev: intent?.ev, accessible: intent?.accessible, bike: kind === "bike" }) : null), [best?.lot.id, at, modelReady, dl.bays, kind]); // eslint-disable-line react-hooks/exhaustive-deps
   const accuracy = useMemo(() => {
     if (!modelReady) return null;
     const pub = dl.pubLots.map((lot) => {
@@ -90,7 +95,7 @@ export default function DriverHome() {
     };
   });
 
-  const href = (id: string) => `/user/park?id=${id}&mode=${mode}${intent?.ev ? "&ev=1" : ""}${whenMin > 20 ? `&in=${whenMin}` : ""}`;
+  const href = (id: string) => `/user/park?id=${id}&mode=${mode}${intent?.ev ? "&ev=1" : ""}${whenMin > 20 ? `&in=${whenMin}` : ""}${kind === "bike" ? "&v=bike" : ""}`;
   const locate = () =>
     navigator.geolocation?.getCurrentPosition(
       (p) => setMe({ lat: p.coords.latitude, lng: p.coords.longitude }),
@@ -136,6 +141,13 @@ export default function DriverHome() {
 
       {/* When */}
       <div className="flex flex-wrap items-center gap-1.5">
+        <div className="mr-2 inline-flex rounded-full border p-0.5" role="radiogroup" aria-label="Vehicle">
+          {(["car", "bike"] as const).map((k) => (
+            <button key={k} role="radio" aria-checked={kind === k} onClick={() => setKind(k)} className={cn("rounded-full px-3 py-1 text-xs font-semibold", kind === k ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+              {k === "car" ? "🚗 Car" : "🛵 Two-wheeler"}
+            </button>
+          ))}
+        </div>
         <span className="mr-1 text-xs font-semibold text-muted-foreground">When?</span>
         {WHEN.map((w) => (
           <button key={w.label} onClick={() => setWhenMin(w.m)} className={cn("rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors", Math.abs(whenMin - w.m) < 2 ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>{w.label}</button>
@@ -179,7 +191,7 @@ export default function DriverHome() {
                   <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                     <div className="min-w-0">
                       <h2 className="truncate font-display text-2xl font-extrabold">{best.lot.name}</h2>
-                      <p className="text-sm text-muted-foreground">{isPublic(best.lot) ? "Public · GCC" : `Commercial · ${best.lot.ownerName}`} · {best.lot.area} · {formatINR(best.lot.pricePerHour)}/h</p>
+                      <p className="text-sm text-muted-foreground">{isPublic(best.lot) ? "Public · GCC" : `Commercial · ${best.lot.ownerName}`} · {best.lot.area} · {formatINR(kind === "bike" ? bikeRate(best.lot) : best.lot.pricePerHour)}/h</p>
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {best.reasons.map((r) => <span key={r} className="rounded-full bg-background/60 px-2.5 py-1 text-xs font-medium">{r}</span>)}
                       </div>
@@ -225,7 +237,7 @@ export default function DriverHome() {
                   <span className={cn("grid size-12 shrink-0 place-items-center rounded-xl font-display text-lg font-extrabold", (future ? (r.forecast?.chance ?? 0) < 0.5 : r.free === 0) ? "bg-status-occupied/15 text-status-occupied" : future && (r.forecast?.chance ?? 0) < 0.8 ? "bg-status-reserved/15 text-status-reserved" : "bg-status-available/15 text-status-available")}>{future && r.forecast ? `~${r.forecast.freeMean}` : r.free}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold">{i === 0 && r.free > 0 && <Sparkles className="mr-1 inline size-3.5 text-primary" />}{r.lot.name} <span className={cn("ml-1 rounded-full px-1.5 py-0.5 align-middle text-[10px] font-semibold", isPublic(r.lot) ? "bg-status-available/15 text-status-available" : "bg-primary/15 text-primary")}>{isPublic(r.lot) ? "Public" : "Commercial"}</span></p>
-                    <p className="truncate text-xs text-muted-foreground">{r.lot.area} · {formatINR(r.lot.pricePerHour)}/h{r.km != null ? ` · ${r.km.toFixed(1)} km` : ""}{r.forecast ? (future ? ` · ${Math.round(r.forecast.chance * 100)}% chance at ${whenLabel(whenMin)}` : ` · AI ${Math.round(r.forecast.occupancy * 100)}% full soon`) : ""}</p>
+                    <p className="truncate text-xs text-muted-foreground">{r.lot.area} · {formatINR(kind === "bike" ? bikeRate(r.lot) : r.lot.pricePerHour)}/h{r.km != null ? ` · ${r.km.toFixed(1)} km` : ""}{r.forecast ? (future ? ` · ${Math.round(r.forecast.chance * 100)}% chance at ${whenLabel(whenMin)}` : ` · AI ${Math.round(r.forecast.occupancy * 100)}% full soon`) : ""}</p>
                     {r.warn && <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-status-reserved"><TriangleAlert className="size-3" /> {r.warn}</p>}
                   </div>
                   <div className="flex shrink-0 flex-col items-end gap-1">

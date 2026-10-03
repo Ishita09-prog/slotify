@@ -142,7 +142,7 @@ function Gate() {
     <>
       <PageHeader
         title="FASTag gate"
-        description="Camera reads the plate → we match the booking → the gate opens. At exit the FASTag is charged for the time parked, minus the ₹25 cover already paid."
+        description="Camera reads the plate → we match the booking → the gate opens. At exit the FASTag is charged for the time parked, minus the cover charge already paid (₹25 car · ₹10 two-wheeler)."
         actions={<Select value={lotId} onChange={(e) => { setLotId(e.target.value); setRes(null); }} aria-label="Location" className="min-w-56">{mine.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</Select>}
       />
 

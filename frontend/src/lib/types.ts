@@ -1,5 +1,5 @@
 export type SlotStatus = "available" | "occupied" | "reserved" | "maintenance";
-export type SlotType = "standard" | "ev" | "accessible" | "compact";
+export type SlotType = "standard" | "ev" | "accessible" | "compact" | "bike";
 export type LotCategory = "mall" | "commercial" | "transit" | "hospital" | "office" | "recreation" | "religious";
 
 export interface Slot {

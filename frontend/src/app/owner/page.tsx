@@ -89,6 +89,7 @@ export default function OwnerHome() {
                     ))}
                   </div>
                   <OccupancyBar value={st.occupancy} className="mt-3" />
+                  {st.bike > 0 && <p className="mt-2 text-xs text-muted-foreground">🛵 Two-wheeler: <b className="text-status-available">{st.bikeFree}</b> of {st.bike} free</p>}
                   <div className="mt-4 grid grid-cols-2 gap-2">
                     <Button asChild variant="outline" size="sm"><Link href={`/owner/lot?id=${lot.id}`}><Settings2 /> Manage bays</Link></Button>
                     <Button asChild size="sm"><Link href={`/owner/gate?lot=${lot.id}`}><ScanLine /> FASTag gate</Link></Button>

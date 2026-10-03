@@ -53,6 +53,8 @@ export interface LiveLot {
   lng: number;
   pricePerHour: number;
   evPerHour: number;
+  /** two-wheeler hourly rate (defaults to a third of the car rate) */
+  bikePerHour?: number;
   /** drivers may park without a time limit (pay for time used) */
   allowOpen: boolean;
   /** drivers book one of the owner's time slots */
@@ -137,6 +139,10 @@ export interface Txn {
 }
 
 export const COVER = 25;
+export const COVER_BIKE = 10;
+export const coverFor = (t?: VehicleType) => (t === "bike" ? COVER_BIKE : COVER);
+/** Two-wheeler hourly rate: owner-set, else a third of the car rate (min ₹5). */
+export const bikeRate = (lot: { pricePerHour: number; bikePerHour?: number }) => lot.bikePerHour ?? Math.max(5, Math.round(lot.pricePerHour / 3 / 5) * 5);
 export const HOLD_MS = 3 * 60_000;
 export const NO_SHOW_GRACE_MS = 15 * 60_000;
 export const VEHICLE_LABEL: Record<VehicleType, string> = { car: "Car", suv: "SUV", ev: "Electric car", bike: "Two-wheeler" };

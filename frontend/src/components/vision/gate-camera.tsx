@@ -81,7 +81,7 @@ export function GateCamera({ onRead, disabled }: { onRead: (plate: string, conf:
       ctx.lineWidth = 3 * k;
       ctx.strokeRect(r.box.x, r.box.y, r.box.w, r.box.h);
       ctx.font = `700 ${Math.round(16 * k)}px ui-monospace, monospace`;
-      const t = `${r.text} ${Math.round(r.conf * 100)}%`;
+      const t = `${r.twoLine ? "2-line " : ""}${r.text} ${Math.round(r.conf * 100)}%`;
       const tw = ctx.measureText(t).width + 10 * k;
       ctx.fillStyle = r.valid ? "#22c55e" : "#f59e0b";
       ctx.fillRect(r.box.x, r.box.y - 22 * k, tw, 22 * k);

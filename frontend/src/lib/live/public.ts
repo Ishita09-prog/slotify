@@ -44,7 +44,7 @@ export function publicLot(city: CityConfig, lot: ParkingLot): LiveLot {
 }
 
 /** A simulated camera bay as a database-shaped Bay; a real booking document (if any) wins. */
-function mergeBay(lot: LiveLot, s: Slot, real: Bay | undefined): Bay {
+function mergeBay(lot: LiveLot, s: Slot, real: Bay | undefined, bikeRow?: string): Bay {
   const sim: Bay = {
     id: publicBayId(lot.id, s.id),
     lotId: lot.id,
@@ -52,7 +52,7 @@ function mergeBay(lot: LiveLot, s: Slot, real: Bay | undefined): Bay {
     label: s.id,
     row: s.row,
     col: s.col,
-    type: s.type,
+    type: s.row === bikeRow ? "bike" : s.type,
     active: s.status !== "maintenance",
     hold: null,
     open:
@@ -74,7 +74,12 @@ export function useDriverLots() {
   return useMemo(() => {
     const pubLots = city.lots.map((l) => publicLot(city, l));
     const realById = new Map(live.bays.map((b) => [b.id, b]));
-    const pubBays = pubLots.flatMap((lot) => (state.slots[lot.id] ?? []).map((s) => mergeBay(lot, s, realById.get(publicBayId(lot.id, s.id)))));
+    // Public lots: the last row is marked out for two-wheelers.
+    const pubBays = pubLots.flatMap((lot) => {
+      const list = state.slots[lot.id] ?? [];
+      const bikeRow = list.reduce((m, s) => (s.row > m ? s.row : m), "");
+      return list.map((s) => mergeBay(lot, s, realById.get(publicBayId(lot.id, s.id)), bikeRow));
+    });
     const ownerLots = live.lots;
     const ownerBays = live.bays.filter((b) => b.ownerUid !== PUBLIC_OWNER);
     return { lots: [...pubLots, ...ownerLots], bays: [...pubBays, ...ownerBays], pubLots, ownerLots };
