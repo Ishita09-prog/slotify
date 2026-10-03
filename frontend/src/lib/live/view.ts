@@ -1,6 +1,7 @@
 import type { ParkingLot, Slot } from "../types";
 import { conflict, holdActive, type BookingRequest } from "./service";
 import { currentWindow, istDateKey, slotKey } from "./time";
+import { leaseAt, leaseOverlapping, planRange } from "./plans";
 import type { Bay, LiveLot } from "./types";
 
 export type BayState = "free" | "booked" | "parked" | "holding" | "mine" | "maintenance";
@@ -14,14 +15,19 @@ export function bayState(bay: Bay, lot: LiveLot, uid: string | null, now: number
     return w ? bay.slots?.[slotKey(istDateKey(now), w.id)] : undefined;
   })();
   if (req?.vehicle && (req.vehicle === "bike") !== (bay.type === "bike")) return { state: "maintenance", reason: req.vehicle === "bike" ? "Car bay" : "Two-wheeler bay" };
+  const planNow = leaseAt(bay, now);
   if (req) {
+    // weekly / monthly request: my own overlapping plan shows as "mine", anyone else's as booked (via conflict below)
+    const lease = req.mode === "plan" && req.plan ? (() => { const r = planRange(req.plan); return leaseOverlapping(bay, r.startAt, r.endAt); })() : undefined;
+    if (lease?.uid === uid) return { state: "mine", vehicle: lease.vehicle };
     const occ = req.mode === "timed" && req.dateKey && req.window ? bay.slots?.[slotKey(req.dateKey, req.window.id)] ?? (req.dateKey === istDateKey(now) ? bay.open ?? undefined : undefined) : bay.open ?? undefined;
     if (occ?.uid === uid) return { state: "mine", vehicle: occ.vehicle };
     const why = conflict(bay, lot, req, now);
     if (why) return { state: occ?.status === "parked" ? "parked" : "booked", reason: why, vehicle: occ?.vehicle };
-  } else if (occNow) {
-    if (occNow.uid === uid) return { state: "mine", vehicle: occNow.vehicle };
-    return { state: occNow.status === "parked" ? "parked" : "booked", vehicle: occNow.vehicle };
+  } else if (occNow ?? planNow) {
+    const o = (occNow ?? planNow)!;
+    if (o.uid === uid) return { state: "mine", vehicle: o.vehicle };
+    return { state: o.status === "parked" ? "parked" : "booked", vehicle: o.vehicle };
   }
   if (holdActive(bay, now) && bay.hold!.uid !== uid) return { state: "holding", reason: "Someone is booking this bay" };
   return { state: "free" };

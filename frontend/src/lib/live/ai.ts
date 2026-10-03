@@ -1,5 +1,6 @@
 import { forecastAt, forecastWith, modelIfLoaded, type Factor } from "../ml/forecast";
 import { istDateKey, slotKey, windowRange } from "./time";
+import { leaseAt } from "./plans";
 import { haversineKm } from "../utils";
 import type { CityConfig } from "../cities";
 import { asParkingLot, lotStats } from "./view";
@@ -228,6 +229,7 @@ export function bookedAt(lot: LiveLot, bays: Bay[], at: number, now: number, bik
     }
     // no-time-limit bookings: assume a typical 2-hour stay from now
     if (!hit && b.open && b.open.uid !== "camera" && at - now < 2 * 3600_000) hit = true;
+    if (!hit && leaseAt(b, at)) hit = true;
     if (hit) n++;
   }
   return n;

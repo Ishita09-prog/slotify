@@ -11,8 +11,10 @@ import { useEffect } from "react";
 import { cancelBooking, exitQuote, gateEntry, gateExit, LowBalance, sweepNoShows } from "@/lib/live/service";
 import { PUBLIC_OWNER, useDriverLots } from "@/lib/live/public";
 import type { PayMethod } from "@/lib/live/types";
-import { fmtDateTime, fmtDur, fmtTime } from "@/lib/live/time";
-import type { BookingStatus } from "@/lib/live/types";
+import { fmtDate, fmtDateTime, fmtDur, fmtTime } from "@/lib/live/time";
+import { bookingTypeOf, planRefund, planStatus } from "@/lib/live/plans";
+import { PLAN_LABEL, PLAN_TONE } from "@/components/owner/long-term-section";
+import type { BookingStatus, LiveBooking } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
 
 const LABEL: Record<BookingStatus, string> = { booked: "Upcoming", parked: "Parked now", completed: "Completed", cancelled: "Cancelled", noshow: "No-show" };
@@ -49,8 +51,21 @@ export default function MyBookings() {
       } else toast.error((e as Error).message);
     }
   };
-  const active = live.bookings.filter((b) => b.status === "booked" || b.status === "parked");
+  // weekly / monthly plans have their own table below ("My Active Bookings"); the cards stay hourly-only
+  const plans = live.bookings.filter((b) => b.mode === "plan" && b.status !== "cancelled");
+  const active = live.bookings.filter((b) => (b.status === "booked" || b.status === "parked") && b.mode !== "plan");
   const past = live.bookings.filter((b) => !(b.status === "booked" || b.status === "parked"));
+
+  const cancelPlan = async (b: LiveBooking) => {
+    if (!live.store) return;
+    const refund = planRefund(b, Date.now());
+    try {
+      await cancelBooking(live.store, b.id);
+      toast.success(refund > 0 ? `Plan cancelled. ${formatINR(refund)} refunded to your FASTag wallet.` : "Plan cancelled.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   const cancel = async (id: string) => {
     if (!live.store) return;
@@ -71,6 +86,34 @@ export default function MyBookings() {
           <p className="mt-2 font-semibold">No bookings yet</p>
           <Button asChild className="mt-3"><Link href="/user">Find parking</Link></Button>
         </Card>
+      )}
+      {plans.length > 0 && (
+        <section className="mb-6" aria-label="My Active Bookings">
+          <h2 className="mb-2 font-display text-lg font-bold">My Active Bookings</h2>
+          <Card className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-sm">
+              <thead className="border-b text-left text-xs text-muted-foreground">
+                <tr>{["Slot", "Type", "Start date", "End date", "Status", "Paid", ""].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
+              </thead>
+              <tbody className="divide-y">
+                {plans.map((b) => {
+                  const st = planStatus(b, now);
+                  return (
+                    <tr key={b.id}>
+                      <td className="px-4 py-3"><b className="font-display text-base">{b.bayLabel}</b><p className="text-xs text-muted-foreground">{b.lotName}</p></td>
+                      <td className="px-4 py-3"><span className="capitalize">{bookingTypeOf(b)}</span> · {b.duration} {bookingTypeOf(b) === "weekly" ? "week" : "month"}{(b.duration ?? 1) > 1 ? "s" : ""}</td>
+                      <td className="px-4 py-3">{fmtDate(b.startAt)}</td>
+                      <td className="px-4 py-3">{fmtDate(b.endAt ?? b.startAt)}<p className="text-[11px] text-muted-foreground">ends 12:00 AM</p></td>
+                      <td className="px-4 py-3"><span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize", PLAN_TONE[st])}>{PLAN_LABEL[st]}</span></td>
+                      <td className="px-4 py-3 tabular-nums">{formatINR(b.amount ?? b.cover)}</td>
+                      <td className="px-4 py-3 text-right">{st !== "expired" && <Button size="sm" variant="outline" onClick={() => cancelPlan(b)}><CalendarX2 /> Cancel</Button>}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
+        </section>
       )}
       <div className="grid gap-3 md:grid-cols-2">
         {active.map((b) => {
@@ -118,7 +161,7 @@ export default function MyBookings() {
                   <p className="text-xs text-muted-foreground">{b.vehicle} · {fmtDateTime(b.createdAt)}{b.fee ? ` · fee ${formatINR(b.fee)}` : ""}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold tabular-nums">{formatINR(b.cover + (b.paidAtExit ?? 0))}</p>
+                  <p className="font-semibold tabular-nums">{formatINR(b.cover - (b.refunded ?? 0) + (b.paidAtExit ?? 0))}</p>
                   <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", TONE[b.status])}>{LABEL[b.status]}</span>
                 </div>
               </div>

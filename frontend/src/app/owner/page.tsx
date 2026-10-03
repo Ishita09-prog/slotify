@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { OccupancyBar } from "@/components/parking/occupancy";
+import { LongTermSection } from "@/components/owner/long-term-section";
 import { useLive, useTick } from "@/lib/live/provider";
 import { sweepNoShows } from "@/lib/live/service";
 import { istDateKey } from "@/lib/live/time";
@@ -20,9 +21,9 @@ export default function OwnerHome() {
   const mine = live.lots.filter((l) => l.ownerUid === live.uid);
   const today = istDateKey(now);
   const todays = live.bookings.filter((b) => istDateKey(b.createdAt) === today);
-  const revenue = todays.reduce((a, b) => a + (b.status === "cancelled" || b.status === "noshow" || b.status === "booked" || b.status === "parked" || b.status === "completed" ? b.cover : 0) + (b.paidAtExit ?? 0), 0);
+  const revenue = todays.reduce((a, b) => a + (b.status === "cancelled" || b.status === "noshow" || b.status === "booked" || b.status === "parked" || b.status === "completed" ? b.cover - (b.refunded ?? 0) : 0) + (b.paidAtExit ?? 0), 0);
   const parkedNow = live.bookings.filter((b) => b.status === "parked").length;
-  const upcoming = live.bookings.filter((b) => b.status === "booked").length;
+  const upcoming = live.bookings.filter((b) => b.status === "booked" && b.mode !== "plan").length;
 
   // No-show protection: release bays 15 min after the booked time (cover charge is kept).
   useEffect(() => {
@@ -100,6 +101,7 @@ export default function OwnerHome() {
           })}
         </div>
       )}
+      <LongTermSection />
     </>
   );
 }

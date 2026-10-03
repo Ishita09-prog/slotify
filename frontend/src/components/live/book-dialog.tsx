@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCode from "qrcode";
 import { Check, CreditCard, Loader2, Lock, Navigation, QrCode, Smartphone, Timer, Wallet } from "lucide-react";
@@ -12,7 +12,9 @@ import { Input } from "@/components/ui/input";
 import { useLive, useTick } from "@/lib/live/provider";
 import { book, holdBay, LowBalance, recharge, releaseBay, type BookingRequest } from "@/lib/live/service";
 import { UserError } from "@/lib/live/store";
-import { fmtDateTime, fmtTime, windowHours } from "@/lib/live/time";
+import { fmtDate, fmtDateTime, fmtTime, windowHours } from "@/lib/live/time";
+import { quotePlan, type PlanQuote } from "@/lib/live/plans";
+import { PlanBreakdown } from "@/components/live/plan-picker";
 import { bikeRate, coverFor, type Bay, type LiveBooking, type LiveLot, type PayMethod, type Vehicle } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
 
@@ -51,7 +53,13 @@ export function BookDialog({
   const booked = useRef(false);
   const balance = live.account?.fastag?.balance ?? 0;
   const COVER = coverFor(vehicle.type);
-  const low = balance < COVER;
+  // weekly / monthly: the whole plan is paid now. Hourly: cover charge (₹25 car, ₹10 two-wheeler).
+  const quote = useMemo<PlanQuote | null>(() => {
+    if (req.mode !== "plan" || !req.plan) return null;
+    try { return quotePlan(lot, req.plan); } catch { return null; }
+  }, [req, lot]);
+  const charge = quote ? quote.total : COVER;
+  const low = balance < charge;
   const rate = bay.type === "bike" ? bikeRate(lot) : lot.pricePerHour + (bay.type === "ev" ? lot.evPerHour : 0);
   const est = req.mode === "timed" && req.window ? windowHours(req.window) * rate : null;
 
@@ -85,8 +93,8 @@ export function BookDialog({
   }, [now, until, open, step, bay.label, onClose]);
 
   useEffect(() => {
-    if (method === "qr") QRCode.toDataURL(`upi://pay?pa=slotify.gcc@sbi&pn=Slotify&am=${COVER}.00&cu=INR&tn=${bay.id}`, { margin: 1, width: 200 }).then(setQr);
-  }, [method, bay.id]);
+    if (method === "qr") QRCode.toDataURL(`upi://pay?pa=slotify.gcc@sbi&pn=Slotify&am=${charge}.00&cu=INR&tn=${bay.id}`, { margin: 1, width: 200 }).then(setQr);
+  }, [method, bay.id, charge]);
 
   const pay = async () => {
     if (!live.store || !live.account) return;
@@ -112,8 +120,9 @@ export function BookDialog({
 
   const topUp = async () => {
     if (!live.store || !live.uid) return;
-    await recharge(live.store, live.uid, 500, "upi");
-    toast.success("₹500 added to FASTag via UPI");
+    const amt = Math.max(500, Math.ceil((charge - balance) / 500) * 500);
+    await recharge(live.store, live.uid, amt, "upi");
+    toast.success(`${formatINR(amt)} added to FASTag via UPI`);
     setMethod("fastag");
   };
 
@@ -141,23 +150,33 @@ export function BookDialog({
               <DialogDescription className="mt-1">{lot.name} · {lot.area}</DialogDescription>
               <div className="mt-4 rounded-xl border bg-secondary/30 p-4">
                 <Row l="Vehicle" v={<b className="font-display tracking-wider">{vehicle.number}</b>} />
-                <Row l={req.mode === "timed" ? "Time slot" : "Arrive by"} v={req.mode === "timed" ? `${req.window?.start}–${req.window?.end}` : fmtTime(Date.now() + (arriveInMin + 15) * 60_000)} />
-                <Row l="Parking fee" v={est != null ? `${formatINR(est)} for the slot` : `${formatINR(rate)}/h, pay for time used`} />
-                <Row l="Cover charge · pay now" v={formatINR(COVER)} strong />
+                {quote ? (
+                  <PlanBreakdown q={quote} payLabel="Pay now" />
+                ) : (
+                  <>
+                    <Row l={req.mode === "timed" ? "Time slot" : "Arrive by"} v={req.mode === "timed" ? `${req.window?.start}–${req.window?.end}` : fmtTime(Date.now() + (arriveInMin + 15) * 60_000)} />
+                    <Row l="Parking fee" v={est != null ? `${formatINR(est)} for the slot` : `${formatINR(rate)}/h, pay for time used`} />
+                    <Row l="Cover charge · pay now" v={formatINR(charge)} strong />
+                  </>
+                )}
               </div>
               <p className="mt-3 rounded-lg bg-primary/10 p-3 text-xs leading-relaxed">
-                The ₹{COVER} is <b>adjusted against your parking fee</b> at the exit gate. If you don&apos;t arrive within 15 minutes, the bay is released and the ₹{COVER} is not refunded.
+                {quote ? (
+                  <>Paid in full now. Bay {bay.label} is reserved for you on these dates and nobody else can book it. Cancel any time: <b>unused time is refunded</b> to your FASTag wallet.</>
+                ) : (
+                  <>The ₹{COVER} is <b>adjusted against your parking fee</b> at the exit gate. If you don&apos;t arrive within 15 minutes, the bay is released and the ₹{COVER} is not refunded.</>
+                )}
               </p>
               <div className="mt-5 flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={onClose}>Change</Button>
-                <Button className="flex-1" disabled={!until} onClick={() => setStep("pay")}>{until ? `Pay ${formatINR(COVER)}` : <Loader2 className="animate-spin" />}</Button>
+                <Button className="flex-1" disabled={!until} onClick={() => setStep("pay")}>{until ? `Pay ${formatINR(charge)}` : <Loader2 className="animate-spin" />}</Button>
               </div>
             </motion.div>
           )}
 
           {step === "pay" && (
             <motion.div key="p" initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }}>
-              <DialogTitle>Pay {formatINR(COVER)}</DialogTitle>
+              <DialogTitle>Pay {formatINR(charge)}</DialogTitle>
               <DialogDescription className="mt-1">FASTag first. If the balance is low, UPI, then QR, then card.</DialogDescription>
               <div className="mt-4 space-y-2" role="radiogroup" aria-label="Payment method">
                 {methods.map((m) => {
@@ -172,17 +191,17 @@ export function BookDialog({
                   );
                 })}
               </div>
-              {low && <button onClick={topUp} className="mt-2 text-xs font-semibold text-primary">+ Recharge FASTag ₹500 via UPI</button>}
+              {low && <button onClick={topUp} className="mt-2 text-xs font-semibold text-primary">+ Recharge FASTag {formatINR(Math.max(500, Math.ceil((charge - balance) / 500) * 500))} via UPI</button>}
               {method === "upi" && <Input aria-label="UPI ID" className="mt-3" value={upi} onChange={(e) => setUpi(e.target.value)} />}
               {method === "qr" && qr && (
                 <div className="mt-3 flex items-center gap-3 rounded-xl border p-3">
                   <img src={qr} alt="UPI QR" className="size-24 rounded-lg bg-white p-1" />
-                  <p className="text-xs text-muted-foreground">Scan with any UPI app to pay {formatINR(COVER)} (demo VPA).</p>
+                  <p className="text-xs text-muted-foreground">Scan with any UPI app to pay {formatINR(charge)} (demo VPA).</p>
                 </div>
               )}
               <div className="mt-5 flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setStep("review")}>Back</Button>
-                <Button className="flex-1" onClick={pay} disabled={(method === "fastag" && low) || (method === "upi" && !upi.includes("@"))}>{method === "qr" ? "I've paid" : `Pay ${formatINR(COVER)}`}</Button>
+                <Button className="flex-1" onClick={pay} disabled={(method === "fastag" && low) || (method === "upi" && !upi.includes("@"))}>{method === "qr" ? "I've paid" : `Pay ${formatINR(charge)}`}</Button>
               </div>
             </motion.div>
           )}
@@ -205,11 +224,11 @@ export function BookDialog({
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="font-mono text-xs text-muted-foreground">{done.id}</p>
                   <p className="font-display text-lg font-extrabold tracking-wider">{done.vehicle}</p>
-                  <p className="text-xs text-muted-foreground">{done.mode === "timed" ? `Slot ${done.windowLabel}` : `Arrive by ${fmtTime(done.startAt + 15 * 60_000)}`} · {fmtDateTime(done.startAt)}</p>
+                  <p className="text-xs text-muted-foreground">{done.mode === "plan" ? `${done.bookingType === "weekly" ? "Weekly" : "Monthly"} plan · ${fmtDate(done.startAt)} → ${fmtDate(done.endAt ?? done.startAt)}` : done.mode === "timed" ? `Slot ${done.windowLabel}` : `Arrive by ${fmtTime(done.startAt + 15 * 60_000)}`}{done.mode === "plan" ? "" : ` · ${fmtDateTime(done.startAt)}`}</p>
                   <p className="mt-1 text-xs">Paid {formatINR(done.cover)} via {done.coverMethod === "fastag" ? "FASTag" : done.coverMethod.toUpperCase()}</p>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-muted-foreground">At the gate the camera reads your plate. No need to show anything.</p>
+              <p className="mt-2 text-xs text-muted-foreground">{done.mode === "plan" ? "Your bay is reserved for these dates. See it under My Active Bookings." : "At the gate the camera reads your plate. No need to show anything."}</p>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 <Button asChild><a href={googleMapsDirectionsUrl(lot)} target="_blank" rel="noopener noreferrer"><Navigation /> Navigate</a></Button>
                 <Button asChild variant="outline"><Link href="/user/bookings">My bookings</Link></Button>

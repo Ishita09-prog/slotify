@@ -49,7 +49,7 @@ function Gate() {
   const [qr, setQr] = useState<string | null>(null);
   const [log, setLog] = useState<{ at: number; text: string; dir: "in" | "out" }[]>([]);
 
-  const arriving = live.bookings.filter((b) => b.lotId === lotId && b.status === "booked").sort((a, b) => a.startAt - b.startAt);
+  const arriving = live.bookings.filter((b) => b.lotId === lotId && b.status === "booked" && b.mode !== "plan").sort((a, b) => a.startAt - b.startAt);
   const inside = live.bookings.filter((b) => b.lotId === lotId && b.status === "parked");
 
   const flashGate = () => {
