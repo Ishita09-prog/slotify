@@ -160,10 +160,34 @@ export function CameraWall() {
     };
   }, [feeds, actions, lotId]);
 
+  // Browsers (Chrome/Brave/Edge) pause muted videos that are display:none or blocked by autoplay rules.
+  // Keep the source videos "visible" (tiny, transparent) and nudge them to play; offer a tap-to-start if blocked.
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    const kick = () => {
+      Object.values(vids.current).forEach((v) => {
+        if (v && v.paused) v.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
+      });
+    };
+    kick();
+    const i = window.setInterval(kick, 1500);
+    document.addEventListener("visibilitychange", kick);
+    return () => {
+      window.clearInterval(i);
+      document.removeEventListener("visibilitychange", kick);
+    };
+  }, []);
+  const startAll = () => Object.values(vids.current).forEach((v) => v?.play().then(() => setBlocked(false)).catch(() => {}));
+
   return (
-    <div>
+    <div className="relative">
+      {blocked && (
+        <button onClick={startAll} className="absolute left-1/2 top-1/3 z-20 -translate-x-1/2 rounded-full bg-sky-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg">
+          ▶ Start camera feeds
+        </button>
+      )}
       {(Object.keys(FEEDS) as (keyof typeof FEEDS)[]).map((k) => (
-        <video key={k} ref={(el) => { vids.current[k] = el; }} autoPlay muted loop playsInline className="hidden">
+        <video key={k} ref={(el) => { vids.current[k] = el; }} autoPlay muted loop playsInline preload="auto" style={{ position: "fixed", right: 0, bottom: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }}>
           <source src={`${FEEDS[k].src}.webm`} type="video/webm" />
           <source src={`${FEEDS[k].src}.mp4`} type="video/mp4" />
         </video>

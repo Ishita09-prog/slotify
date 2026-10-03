@@ -11,6 +11,12 @@ export function FootagePlayer({ title, watermark, className }: { title: string; 
     fetch("/feeds/lot-bays.tracks.json").then((r) => r.json()).then(setFeed).catch(() => {});
   }, []);
   useEffect(() => {
+    const kick = () => v.current?.paused && v.current.play().catch(() => {});
+    kick();
+    const i = window.setInterval(kick, 1500);
+    return () => window.clearInterval(i);
+  }, []);
+  useEffect(() => {
     if (!feed) return;
     let raf = 0;
     const draw = () => {
@@ -49,11 +55,11 @@ export function FootagePlayer({ title, watermark, className }: { title: string; 
   }, [feed, watermark]);
   return (
     <div className={`relative overflow-hidden rounded-lg bg-black ${className ?? "aspect-square"}`}>
-      <video ref={v} autoPlay muted loop playsInline className="hidden">
+      <video ref={v} autoPlay muted loop playsInline preload="auto" style={{ position: "fixed", right: 0, bottom: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }}>
         <source src="/feeds/lot-bays.webm" type="video/webm" />
         <source src="/feeds/lot-bays.mp4" type="video/mp4" />
       </video>
-      <canvas ref={c} className="absolute inset-0 h-full w-full" />
+      <canvas ref={c} onClick={() => v.current?.play().catch(() => {})} className="absolute inset-0 h-full w-full" />
       <div className="pointer-events-none absolute left-2 top-2 flex items-center gap-1.5 rounded bg-black/60 px-2 py-0.5 font-mono text-[11px] text-white">
         <span className="size-2 animate-pulse rounded-full bg-red-500" /> {title}
       </div>
