@@ -275,11 +275,11 @@ export function predictAt(lot: LiveLot, bays: Bay[], at: number, now = Date.now(
 }
 
 /** Hour-by-hour availability for the next `hours` hours (for "best time to go"). */
-export function dayOutlook(lot: LiveLot, bays: Bay[], now = Date.now(), hours = 24) {
+export function dayOutlook(lot: LiveLot, bays: Bay[], now = Date.now(), hours = 24, need: { ev?: boolean; accessible?: boolean; bike?: boolean } = {}) {
   const start = Math.ceil(now / 3600_000) * 3600_000;
   const out: Prediction[] = [];
   for (let i = 0; i < hours; i++) {
-    const p = predictAt(lot, bays, start + i * 3600_000, now);
+    const p = predictAt(lot, bays, start + i * 3600_000, now, need);
     if (p) out.push(p);
   }
   return out;

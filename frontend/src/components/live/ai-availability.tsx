@@ -33,11 +33,11 @@ export function AiAvailability({
   target: number;
   onPick: (t: number) => void;
   ready: boolean;
-  need?: { ev?: boolean; accessible?: boolean };
+  need?: { ev?: boolean; accessible?: boolean; bike?: boolean };
 }) {
   const minute = Math.floor(now / 60000);
-  const pred = useMemo(() => (ready ? predictAt(lot, bays, Math.max(target, now + 15 * 60_000), now, need) : null), [ready, lot, bays, target, minute, need?.ev]); // eslint-disable-line react-hooks/exhaustive-deps
-  const day = useMemo(() => (ready ? dayOutlook(lot, bays, now, 24) : []), [ready, lot, bays, Math.floor(now / 300000)]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pred = useMemo(() => (ready ? predictAt(lot, bays, Math.max(target, now + 15 * 60_000), now, need) : null), [ready, lot, bays, target, minute, need?.ev, need?.bike]); // eslint-disable-line react-hooks/exhaustive-deps
+  const day = useMemo(() => (ready ? dayOutlook(lot, bays, now, 24, need) : []), [ready, lot, bays, Math.floor(now / 300000), need?.bike]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!pred) return null;
   const maxFree = Math.max(1, ...day.map((d) => d.freeHigh));
   const open = day.map((d) => isOpen(lot.openHours, d.at));

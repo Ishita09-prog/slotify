@@ -74,7 +74,7 @@ function Park() {
     btype !== "hourly"
       ? planQuote ? { mode: "plan", plan: { type: btype, units: planUnits, startKey }, vehicle: vType } : null
       : mode === "open" ? { mode: "open", vehicle: vType } : win ? { mode: "timed", dateKey: dayKey, window: win, vehicle: vType } : null;
-  const evNeed = useMemo(() => ({ ev: params.get("ev") === "1" }), [params]);
+  const evNeed = useMemo(() => ({ ev: params.get("ev") === "1", bike: vType === "bike" }), [params, vType]);
   useEffect(() => {
     if (win) setTarget(windowRange(dayKey, win).start);
   }, [win?.id, dayKey]); // eslint-disable-line react-hooks/exhaustive-deps
