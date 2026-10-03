@@ -43,10 +43,18 @@ const CAMS: Cam[] = [
 
 const LINK_LOT = "vl-phoenix";
 
+/** If the browser refused to play, step the clip by hand so the feed never looks frozen. */
+export function unfreeze(v: HTMLVideoElement) {
+  if (!v.paused || v.seeking || !v.duration) return;
+  const t0 = Number(v.dataset.t0 || (v.dataset.t0 = String(performance.now() - v.currentTime * 1000)));
+  const t = ((performance.now() - t0) / 1000) % v.duration;
+  if (Math.abs(t - v.currentTime) > 0.08) v.currentTime = t;
+}
+
 export function CameraWall() {
   const { city } = useCity();
   const { actions } = useSlotify();
-  const vids = useRef<Record<string, HTMLVideoElement | null>>({});
+  const vids = useRef<(HTMLVideoElement | null)[]>([]);
   const canvases = useRef<(HTMLCanvasElement | null)[]>([]);
   const [feeds, setFeeds] = useState<Partial<Record<keyof typeof FEEDS, Feed>>>({});
   const [stats, setStats] = useState<string[]>(CAMS.map(() => ""));
@@ -76,25 +84,36 @@ export function CameraWall() {
     const draw = () => {
       const st: string[] = [];
       CAMS.forEach((cam, i) => {
-        const v = vids.current[cam.feed];
+        const v = vids.current[i];
         const feed = feeds[cam.feed];
         const c = canvases.current[i];
         if (!v || !feed || !c || v.readyState < 2) return st.push("");
         const [cx, cy, cw, ch] = cam.crop ?? [0, 0, feed.w, feed.h];
-        const sx = v.videoWidth / feed.w, sy = v.videoHeight / feed.h;
+        unfreeze(v);
         const dpr = devicePixelRatio;
-        const W = c.clientWidth * dpr, H = c.clientHeight * dpr;
+        const CW = c.clientWidth, CH = c.clientHeight;
+        const W = CW * dpr, H = CH * dpr;
         if (c.width !== W || c.height !== H) {
           c.width = W;
           c.height = H;
         }
+        // The real <video> sits under the canvas (browsers never pause a visible video). Position it so the crop fills the tile.
+        const k = Math.min(CW / cw, CH / ch);
+        const css = `left:${(CW - cw * k) / 2 - cx * k}px;top:${(CH - ch * k) / 2 - cy * k}px;width:${feed.w * k}px;height:${feed.h * k}px`;
+        if (v.dataset.css !== css) {
+          v.dataset.css = css;
+          v.style.cssText = `position:absolute;max-width:none;object-fit:fill;${css}`;
+        }
         const ctx = c.getContext("2d")!;
-        // keep aspect: fit crop into canvas (letterbox)
-        const s = Math.min(W / cw, H / ch);
+        const s = k * dpr;
         const ox = (W - cw * s) / 2, oy = (H - ch * s) / 2;
+        ctx.clearRect(0, 0, W, H);
+        // black out whatever of the frame lies outside this camera's crop
         ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, W, H);
-        ctx.drawImage(v, cx * sx, cy * sy, cw * sx, ch * sy, ox, oy, cw * s, ch * s);
+        ctx.fillRect(0, 0, W, oy);
+        ctx.fillRect(0, oy + ch * s, W, H - oy - ch * s);
+        ctx.fillRect(0, 0, ox, H);
+        ctx.fillRect(ox + cw * s, 0, W - ox - cw * s, H);
         const f = feed.frames[Math.min(feed.frames.length - 1, Math.floor(v.currentTime * feed.fps))] ?? [];
         ctx.font = `700 ${Math.round(11 * dpr)}px ui-monospace, monospace`;
         let n = 0, free = 0;
@@ -160,24 +179,23 @@ export function CameraWall() {
     };
   }, [feeds, actions, lotId]);
 
-  // Browsers (Chrome/Brave/Edge) pause muted videos that are display:none or blocked by autoplay rules.
-  // Keep the source videos "visible" (tiny, transparent) and nudge them to play; offer a tap-to-start if blocked.
+  // Autoplay can still be refused (Brave shields, battery saver). Nudge, and offer a tap-to-start; unfreeze() keeps frames moving meanwhile.
   const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     const kick = () => {
-      Object.values(vids.current).forEach((v) => {
+      vids.current.forEach((v) => {
         if (v && v.paused) v.play().then(() => setBlocked(false)).catch(() => setBlocked(true));
       });
     };
     kick();
-    const i = window.setInterval(kick, 1500);
+    const i = window.setInterval(kick, 2000);
     document.addEventListener("visibilitychange", kick);
     return () => {
       window.clearInterval(i);
       document.removeEventListener("visibilitychange", kick);
     };
   }, []);
-  const startAll = () => Object.values(vids.current).forEach((v) => v?.play().then(() => setBlocked(false)).catch(() => {}));
+  const startAll = () => vids.current.forEach((v) => v?.play().then(() => setBlocked(false)).catch(() => {}));
 
   return (
     <div className="relative">
@@ -186,16 +204,14 @@ export function CameraWall() {
           ▶ Start camera feeds
         </button>
       )}
-      {(Object.keys(FEEDS) as (keyof typeof FEEDS)[]).map((k) => (
-        <video key={k} ref={(el) => { vids.current[k] = el; }} autoPlay muted loop playsInline preload="auto" style={{ position: "fixed", right: 0, bottom: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }}>
-          <source src={`${FEEDS[k].src}.webm`} type="video/webm" />
-          <source src={`${FEEDS[k].src}.mp4`} type="video/mp4" />
-        </video>
-      ))}
       <div className="grid gap-2 lg:grid-cols-3">
         {CAMS.map((cam, i) => (
           <div key={cam.id} className={cn("relative overflow-hidden rounded-lg border border-[hsl(var(--cc-line))] bg-black", i === 0 ? "aspect-square lg:col-span-2 lg:row-span-3 lg:aspect-auto lg:min-h-[560px]" : "aspect-video")}>
-            <canvas ref={(el) => { canvases.current[i] = el; }} className="absolute inset-0 h-full w-full" />
+            <video ref={(el) => { vids.current[i] = el; }} autoPlay muted loop playsInline preload="auto" disablePictureInPicture className="absolute inset-0 h-full w-full" onClick={startAll}>
+              <source src={`${FEEDS[cam.feed].src}.webm`} type="video/webm" />
+              <source src={`${FEEDS[cam.feed].src}.mp4`} type="video/mp4" />
+            </video>
+            <canvas ref={(el) => { canvases.current[i] = el; }} onClick={startAll} className="absolute inset-0 h-full w-full" />
             <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent px-2.5 py-1.5 font-mono text-[11px] text-white">
               <span className="flex items-center gap-1.5"><span className="size-2 animate-pulse rounded-full bg-red-500" /> {cam.id} · {cam.name}</span>
               <span>{clock}</span>

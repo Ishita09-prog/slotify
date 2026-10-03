@@ -11,7 +11,7 @@ export function CitySwitcher({ className, compact }: { className?: string; compa
   return (
     <label
       className={cn(
-        "relative inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/40 py-1 pl-2.5 pr-1 text-xs font-semibold",
+        "relative inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-card/40 text-foreground py-1 pl-2.5 pr-1 text-xs font-semibold",
         className
       )}
     >
@@ -21,10 +21,10 @@ export function CitySwitcher({ className, compact }: { className?: string; compa
         value={city.id}
         onChange={(e) => setCity(e.target.value as CityId)}
         aria-label="Switch city deployment"
-        className="max-w-[5.5rem] cursor-pointer appearance-none truncate rounded-full bg-transparent py-0.5 pl-1 pr-5 sm:max-w-none font-semibold text-foreground focus:outline-none"
+        className="max-w-[5.5rem] cursor-pointer appearance-none truncate rounded-full bg-transparent py-0.5 pl-1 pr-5 sm:max-w-none font-semibold text-inherit focus:outline-none"
       >
         {CITY_LIST.map((c) => (
-          <option key={c.id} value={c.id} className="bg-card text-foreground">
+          <option key={c.id} value={c.id} className="bg-white text-slate-900">
             {c.name}
           </option>
         ))}

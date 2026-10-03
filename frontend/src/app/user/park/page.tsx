@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { loadAllModels } from "@/lib/ml/forecast";
 import { PlanBreakdown, PlanPicker } from "@/components/live/plan-picker";
-import { PLAN_MAX_LEAD_DAYS, PLAN_PRICING, quotePlan, type BookingType, type PlanQuote } from "@/lib/live/plans";
+import { PLAN_MAX_LEAD_DAYS, PLAN_PRICING, dailyEnd, quotePlan, type DailyWindow, type BookingType, type PlanQuote } from "@/lib/live/plans";
 import { AiAvailability } from "@/components/live/ai-availability";
 import { useLive, useTick } from "@/lib/live/provider";
 import { isPublic, useDriverLots } from "@/lib/live/public";
@@ -44,6 +44,7 @@ function Park() {
   const [btype, setBtype] = useState<BookingType>("hourly");
   const [planUnits, setPlanUnits] = useState(1);
   const [planStart, setPlanStart] = useState<string | null>(null);
+  const [planDaily, setPlanDaily] = useState<DailyWindow | null>(null);
   const [modelReady, setModelReady] = useState(false);
   useEffect(() => void loadAllModels().then(() => setModelReady(true)), []);
   const [target, setTarget] = useState<number>(() => Date.now() + Math.max(15, Number(params.get("in") ?? 0)) * 60_000);
@@ -68,11 +69,11 @@ function Park() {
   const startKey = planStart && planStart >= todayKey ? planStart : todayKey;
   const planQuote: PlanQuote | null = useMemo(() => {
     if (!lot || btype === "hourly") return null;
-    try { return quotePlan(lot, { type: btype, units: planUnits, startKey }); } catch { return null; }
-  }, [lot, btype, planUnits, startKey]);
+    try { return quotePlan(lot, { type: btype, units: planUnits, startKey, daily: planDaily }); } catch { return null; }
+  }, [lot, btype, planUnits, startKey, planDaily]);
   const req: BookingRequest | null =
     btype !== "hourly"
-      ? planQuote ? { mode: "plan", plan: { type: btype, units: planUnits, startKey }, vehicle: vType } : null
+      ? planQuote ? { mode: "plan", plan: { type: btype, units: planUnits, startKey, daily: planDaily }, vehicle: vType } : null
       : mode === "open" ? { mode: "open", vehicle: vType } : win ? { mode: "timed", dateKey: dayKey, window: win, vehicle: vType } : null;
   const evNeed = useMemo(() => ({ ev: params.get("ev") === "1", bike: vType === "bike" }), [params, vType]);
   useEffect(() => {
@@ -144,7 +145,7 @@ function Park() {
             </div>
 
             {btype !== "hourly" && (
-              <PlanPicker lot={lot} type={btype} units={planUnits} onUnits={(n) => { setPlanUnits(n); setSel(null); }} startKey={startKey} onStart={(k) => { setPlanStart(k); setSel(null); }} minKey={todayKey} maxKey={istDateKey(now + PLAN_MAX_LEAD_DAYS * 24 * 3600_000)} />
+              <PlanPicker lot={lot} type={btype} units={planUnits} onUnits={(n) => { setPlanUnits(n); setSel(null); }} startKey={startKey} onStart={(k) => { setPlanStart(k); setSel(null); }} minKey={todayKey} maxKey={istDateKey(now + PLAN_MAX_LEAD_DAYS * 24 * 3600_000)} daily={planDaily} onDaily={(d) => { setPlanDaily(d); setSel(null); }} />
             )}
 
             {btype === "hourly" && lot.allowOpen && lot.allowTimed && (
@@ -207,7 +208,7 @@ function Park() {
               {planQuote ? (
                 <>
                   <PlanBreakdown q={planQuote} payLabel="Pay now" />
-                  <p className="mt-1 text-[11px] text-muted-foreground">Paid in full now. Cancel any time and unused time is refunded to your FASTag wallet. The pass ends at 12:00 AM on the end date.</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">Paid in full now. Cancel any time and unused time is refunded to your FASTag wallet. The pass ends at 12:00 AM on the end date.{planQuote.daily ? ` Bay is yours ${planQuote.daily.start}–${dailyEnd(planQuote.daily)} each day.` : ""}</p>
                 </>
               ) : (
                 <>

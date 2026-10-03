@@ -12,7 +12,7 @@ import { cancelBooking, exitQuote, gateEntry, gateExit, LowBalance, sweepNoShows
 import { PUBLIC_OWNER, useDriverLots } from "@/lib/live/public";
 import type { PayMethod } from "@/lib/live/types";
 import { fmtDate, fmtDateTime, fmtDur, fmtTime } from "@/lib/live/time";
-import { bookingTypeOf, planRefund, planStatus } from "@/lib/live/plans";
+import { bookingTypeOf, dailyLabel, planRefund, planStatus } from "@/lib/live/plans";
 import { PLAN_LABEL, PLAN_TONE } from "@/components/owner/long-term-section";
 import type { BookingStatus, LiveBooking } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
@@ -101,7 +101,7 @@ export default function MyBookings() {
                   return (
                     <tr key={b.id}>
                       <td className="px-4 py-3"><b className="font-display text-base">{b.bayLabel}</b><p className="text-xs text-muted-foreground">{b.lotName}</p></td>
-                      <td className="px-4 py-3"><span className="capitalize">{bookingTypeOf(b)}</span> · {b.duration} {bookingTypeOf(b) === "weekly" ? "week" : "month"}{(b.duration ?? 1) > 1 ? "s" : ""}</td>
+                      <td className="px-4 py-3"><span className="capitalize">{bookingTypeOf(b)}</span> · {b.duration} {bookingTypeOf(b) === "weekly" ? "week" : "month"}{(b.duration ?? 1) > 1 ? "s" : ""}<p className="text-[11px] text-muted-foreground">{dailyLabel(b.planDaily)}</p></td>
                       <td className="px-4 py-3">{fmtDate(b.startAt)}</td>
                       <td className="px-4 py-3">{fmtDate(b.endAt ?? b.startAt)}<p className="text-[11px] text-muted-foreground">ends 12:00 AM</p></td>
                       <td className="px-4 py-3"><span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize", PLAN_TONE[st])}>{PLAN_LABEL[st]}</span></td>

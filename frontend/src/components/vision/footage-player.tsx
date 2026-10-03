@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { unfreeze } from "./camera-wall";
 
 /** Plays a recorded camera clip with the edge-AI bay overlay and an evidence watermark. */
 export function FootagePlayer({ title, watermark, className }: { title: string; watermark?: string; className?: string }) {
@@ -27,11 +28,10 @@ export function FootagePlayer({ title, watermark, className }: { title: string; 
           cv.width = W;
           cv.height = H;
         }
+        unfreeze(vid);
         const ctx = cv.getContext("2d")!;
         const s = Math.min(W / feed.w, H / feed.h), ox = (W - feed.w * s) / 2, oy = (H - feed.h * s) / 2;
-        ctx.fillStyle = "#000";
-        ctx.fillRect(0, 0, W, H);
-        ctx.drawImage(vid, ox, oy, feed.w * s, feed.h * s);
+        ctx.clearRect(0, 0, W, H);
         const f = feed.frames[Math.min(feed.frames.length - 1, Math.floor(vid.currentTime * feed.fps))] ?? [];
         ctx.font = `700 ${Math.round(10 * dpr)}px ui-monospace, monospace`;
         for (const [x, y, w, h, id, , cls] of f) {
@@ -55,7 +55,7 @@ export function FootagePlayer({ title, watermark, className }: { title: string; 
   }, [feed, watermark]);
   return (
     <div className={`relative overflow-hidden rounded-lg bg-black ${className ?? "aspect-square"}`}>
-      <video ref={v} autoPlay muted loop playsInline preload="auto" style={{ position: "fixed", right: 0, bottom: 0, width: 2, height: 2, opacity: 0.01, pointerEvents: "none" }}>
+      <video ref={v} autoPlay muted loop playsInline preload="auto" disablePictureInPicture className="absolute inset-0 h-full w-full object-contain">
         <source src="/feeds/lot-bays.webm" type="video/webm" />
         <source src="/feeds/lot-bays.mp4" type="video/mp4" />
       </video>

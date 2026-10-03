@@ -259,6 +259,7 @@ export async function book(
             amount: quote.total,
             planRate: quote.rate,
             planDiscountPct: quote.discountPct,
+            planDaily: quote.daily ?? null,
             startDate: keyToIso(quote.startKey),
             endDate: keyToIso(istDateKey(quote.endAt)),
           }
@@ -268,7 +269,7 @@ export async function book(
     // finished leases older than a day are dropped so the bay document doesn't grow forever
     const livePlans = Object.fromEntries(Object.entries(bay.plans ?? {}).filter(([, l]) => l.endAt > now - 24 * 3600_000));
     const nextBay: Bay = quote
-      ? { ...bay, hold: null, plans: { ...livePlans, [id]: { ...occ, startAt: quote.startAt, endAt: quote.endAt } }, updatedAt: now }
+      ? { ...bay, hold: null, plans: { ...livePlans, [id]: { ...occ, startAt: quote.startAt, endAt: quote.endAt, daily: quote.daily ?? null } }, updatedAt: now }
       : req.mode === "timed"
         ? { ...bay, hold: null, slots: { ...(bay.slots ?? {}), [booking.slotKey!]: occ }, updatedAt: now }
         : { ...bay, hold: null, open: occ, updatedAt: now };
@@ -279,7 +280,7 @@ export async function book(
       t.set("accounts", acc.id, { ...acc, fastag: { ...acc.fastag, balance } });
       const txn: Txn = {
         id: rid("TX"), uid: acc.id, kind: "debit", amount: charge,
-        desc: quote ? `${quote.type === "weekly" ? "Weekly" : "Monthly"} plan (${quote.durationLabel}) · ${lot.name} · ${bay.label}` : `Cover charge · ${lot.name} · ${bay.label}`,
+        desc: quote ? `${quote.type === "weekly" ? "Weekly" : "Monthly"} plan (${quote.durationLabel}${quote.daily ? `, ${quote.daily.start} for ${quote.daily.hours} h/day` : ""}) · ${lot.name} · ${bay.label}` : `Cover charge · ${lot.name} · ${bay.label}`,
         at: now, balanceAfter: balance, method: "fastag",
       };
       t.set("txns", txn.id, txn);

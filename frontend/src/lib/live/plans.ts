@@ -16,7 +16,30 @@ export interface PlanSpec {
   units: number;
   /** first day of the plan, IST, yyyymmdd */
   startKey: string;
+  /**
+   * Time-limited pass: the bay is yours only from `start` for `hours` every day,
+   * and is free for others (hourly / overnight) the rest of the time. Omitted = whole day (24h).
+   */
+  daily?: DailyWindow | null;
 }
+
+export interface DailyWindow {
+  /** "HH:00", IST */
+  start: string;
+  hours: number;
+}
+
+/**
+ * TIME-LIMITED PRICING: 20% base + 5% per hour of the daily window, capped at 90% of the 24h price.
+ * 4h = 40%, 8h = 60%, 12h = 80%. The base share keeps short passes worth the bay being reserved.
+ */
+export const DAILY_HOURS = [4, 6, 8, 10, 12, 14];
+export const dailyFactor = (hours: number) => Math.min(0.9, 0.2 + 0.05 * hours);
+export const dailyEnd = (d: DailyWindow) => {
+  const m = (Number(d.start.slice(0, 2)) * 60 + Number(d.start.slice(3, 5)) + d.hours * 60) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+};
+export const dailyLabel = (d?: DailyWindow | null) => (d ? `${d.start}–${dailyEnd(d)} daily (${d.hours} h)` : "Whole day (24 h)");
 
 /**
  * PRICING CONFIG: change numbers here, nothing else needs to move.
@@ -57,7 +80,10 @@ export function planRange(spec: PlanSpec): { startAt: number; endAt: number } {
 export interface PlanQuote extends PlanSpec {
   startAt: number;
   endAt: number;
+  /** price for one week/month at the chosen coverage */
   rate: number;
+  /** 24h rate before the time-limited reduction */
+  fullRate: number;
   gross: number;
   discountPct: number;
   discount: number;
@@ -75,12 +101,17 @@ export function quotePlan(lot: Pick<LiveLot, "planRates">, spec: PlanSpec, now =
   const today = istDateKey(now);
   if (spec.startKey < today) throw new Error("Start date can't be in the past.");
   if (spec.startKey > istDateKey(now + PLAN_MAX_LEAD_DAYS * DAY)) throw new Error(`Plans can start at most ${PLAN_MAX_LEAD_DAYS} days ahead.`);
+  if (spec.daily) {
+    if (!DAILY_HOURS.includes(spec.daily.hours)) throw new Error(`Choose ${DAILY_HOURS.join(", ")} hours a day.`);
+    if (!/^([01]\d|2[0-3]):00$/.test(spec.daily.start)) throw new Error("Pick a daily start time.");
+  }
   const { startAt, endAt } = planRange(spec);
-  const rate = planRate(lot, spec.type);
+  const fullRate = planRate(lot, spec.type);
+  const rate = spec.daily ? Math.round((fullRate * dailyFactor(spec.daily.hours)) / 10) * 10 : fullRate;
   const gross = rate * spec.units;
   const discountPct = cfg.discountPct[spec.units] ?? 0;
   const discount = Math.round((gross * discountPct) / 100);
-  return { ...spec, startAt, endAt, rate, gross, discountPct, discount, total: gross - discount, durationLabel: `${spec.units} ${cfg.unit}${spec.units > 1 ? "s" : ""}` };
+  return { ...spec, daily: spec.daily ?? null, startAt, endAt, rate, fullRate, gross, discountPct, discount, total: gross - discount, durationLabel: `${spec.units} ${cfg.unit}${spec.units > 1 ? "s" : ""}` };
 }
 
 /* ------------------------------ overlap ------------------------------ */
@@ -90,12 +121,50 @@ export const overlaps = (aStart: number, aEnd: number, bStart: number, bEnd: num
 
 const leases = (bay: Bay) => Object.values(bay.plans ?? {});
 
-/** First plan on this bay that overlaps [startAt, endAt). */
-export const leaseOverlapping = (bay: Bay, startAt: number, endAt: number): PlanLease | undefined =>
-  leases(bay).find((l) => overlaps(l.startAt, l.endAt, startAt, endAt));
+/**
+ * Does a plan running [startAt, endAt) with an optional daily window occupy any part of [s, e)?
+ * Whole-day plans block everything in range; time-limited plans only their daily hours
+ * (a window may run past midnight, e.g. 20:00 for 12 h).
+ */
+export function covers(p: { startAt: number; endAt: number; daily?: DailyWindow | null }, s: number, e: number): boolean {
+  if (!overlaps(p.startAt, p.endAt, s, e)) return false;
+  if (!p.daily) return true;
+  const len = p.daily.hours * 3600_000;
+  // walk the plan's days that could touch [s, e): from the day before s to the day of e
+  for (let d = Math.max(p.startAt, s - DAY); d < Math.min(p.endAt, e + DAY); d += DAY) {
+    const ws = at(istDateKey(d), p.daily.start);
+    if (ws < p.startAt || ws >= p.endAt) continue;
+    if (overlaps(ws, ws + len, s, e)) return true;
+  }
+  return false;
+}
 
-/** The plan covering instant `t`, if any. */
-export const leaseAt = (bay: Bay, t: number): PlanLease | undefined => leases(bay).find((l) => l.startAt <= t && t < l.endAt);
+/** Each daily window of a plan, for plan-vs-plan checks. Whole-day plans yield one interval. */
+function* intervals(p: { startAt: number; endAt: number; daily?: DailyWindow | null }) {
+  if (!p.daily) { yield [p.startAt, p.endAt] as const; return; }
+  const len = p.daily.hours * 3600_000;
+  for (let d = p.startAt; d < p.endAt; d += DAY) {
+    const ws = at(istDateKey(d), p.daily.start);
+    yield [ws, ws + len] as const;
+  }
+}
+
+/** First plan on this bay that occupies any part of [startAt, endAt). */
+export const leaseOverlapping = (bay: Bay, startAt: number, endAt: number): PlanLease | undefined =>
+  leases(bay).find((l) => covers(l, startAt, endAt));
+
+/** First existing plan that clashes with a new plan spec (respecting both daily windows). */
+export function leaseClashing(bay: Bay, spec: PlanSpec): PlanLease | undefined {
+  const p = { ...planRange(spec), daily: spec.daily };
+  return leases(bay).find((l) => {
+    if (!overlaps(l.startAt, l.endAt, p.startAt, p.endAt)) return false;
+    for (const [s, e] of intervals(p)) if (covers(l, s, e)) return true;
+    return false;
+  });
+}
+
+/** The plan covering instant `t`, if any (a time-limited pass only during its daily hours). */
+export const leaseAt = (bay: Bay, t: number): PlanLease | undefined => leases(bay).find((l) => covers(l, t, t + 1));
 
 /** End of today in IST (= 00:00 tomorrow). Hourly "no time limit" stays are assumed to finish before this. */
 const endOfToday = (now: number) => at(istDateKey(now + DAY), "00:00");
@@ -105,15 +174,15 @@ const endOfToday = (now: number) => at(istDateKey(now + DAY), "00:00");
  * Checks, in order: other plans, a no-time-limit stay, and every timed hourly slot.
  */
 export function planConflict(bay: Bay, lot: LiveLot, spec: PlanSpec, now: number): string | null {
-  const { startAt, endAt } = planRange(spec);
-  if (leaseOverlapping(bay, startAt, endAt)) return "Reserved on another weekly/monthly plan";
-  if (bay.open && startAt < endOfToday(now)) return "Taken today (no time limit)";
+  const p = { ...planRange(spec), daily: spec.daily };
+  if (leaseClashing(bay, spec)) return "Reserved on another weekly/monthly plan";
+  if (bay.open && covers(p, now, endOfToday(now))) return "Taken today (no time limit)";
   for (const key of Object.keys(bay.slots ?? {})) {
     const [d, wid] = key.split("_");
     const w = lot.windows.find((x) => x.id === wid);
     // a slot whose window was later deleted still blocks its whole day
     const r = w ? windowRange(d, w) : { start: at(d, "00:00"), end: at(d, "00:00") + DAY };
-    if (r.end > now && overlaps(r.start, r.end, startAt, endAt)) return "Has hourly bookings in that period";
+    if (r.end > now && covers(p, r.start, r.end)) return "Has hourly bookings in that period";
   }
   return null;
 }

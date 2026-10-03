@@ -101,6 +101,8 @@ export interface Bay {
 export interface PlanLease extends Occupant {
   startAt: number;
   endAt: number;
+  /** time-limited pass: bay is held only for these hours each day; null/absent = whole day */
+  daily?: { start: string; hours: number } | null;
 }
 
 export type PayMethod = "fastag" | "upi" | "qr" | "card";
@@ -127,6 +129,8 @@ export interface LiveBooking {
   amount?: number | null;
   planRate?: number | null;
   planDiscountPct?: number | null;
+  /** plan: time-limited pass window ("HH:00" + hours); null = whole day */
+  planDaily?: { start: string; hours: number } | null;
   /** plan: IST dates, yyyy-mm-dd (endDate is the exclusive end) */
   startDate?: string | null;
   endDate?: string | null;

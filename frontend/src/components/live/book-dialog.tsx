@@ -224,7 +224,7 @@ export function BookDialog({
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="font-mono text-xs text-muted-foreground">{done.id}</p>
                   <p className="font-display text-lg font-extrabold tracking-wider">{done.vehicle}</p>
-                  <p className="text-xs text-muted-foreground">{done.mode === "plan" ? `${done.bookingType === "weekly" ? "Weekly" : "Monthly"} plan · ${fmtDate(done.startAt)} → ${fmtDate(done.endAt ?? done.startAt)}` : done.mode === "timed" ? `Slot ${done.windowLabel}` : `Arrive by ${fmtTime(done.startAt + 15 * 60_000)}`}{done.mode === "plan" ? "" : ` · ${fmtDateTime(done.startAt)}`}</p>
+                  <p className="text-xs text-muted-foreground">{done.mode === "plan" ? `${done.bookingType === "weekly" ? "Weekly" : "Monthly"} plan${done.planDaily ? ` (${done.planDaily.start}, ${done.planDaily.hours} h/day)` : ""} · ${fmtDate(done.startAt)} → ${fmtDate(done.endAt ?? done.startAt)}` : done.mode === "timed" ? `Slot ${done.windowLabel}` : `Arrive by ${fmtTime(done.startAt + 15 * 60_000)}`}{done.mode === "plan" ? "" : ` · ${fmtDateTime(done.startAt)}`}</p>
                   <p className="mt-1 text-xs">Paid {formatINR(done.cover)} via {done.coverMethod === "fastag" ? "FASTag" : done.coverMethod.toUpperCase()}</p>
                 </div>
               </div>
