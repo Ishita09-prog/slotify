@@ -157,3 +157,21 @@ export interface FootageRequest {
   decidedAt?: number | null;
   note?: string | null;
 }
+
+/** Traffic-police notice / e-challan addressed to a vehicle (delivered in-app when the plate belongs to a Slotify driver). */
+export interface PoliceNotice {
+  id: string;
+  plate: string;
+  kind: "notice" | "challan";
+  violation: string;
+  location: string;
+  fine: number;
+  issuedBy: string;
+  createdAt: number;
+  dueAt: number;
+  status: "sent" | "seen" | "moved" | "paid";
+  driverUid?: string | null;
+  driverName?: string | null;
+  updatedAt: number;
+  paidMethod?: PayMethod | null;
+}

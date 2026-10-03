@@ -7,7 +7,7 @@
  * All business logic (lib/live/service.ts) is written once against this interface.
  */
 
-export type Coll = "accounts" | "usernames" | "lots" | "bays" | "bookings" | "txns" | "footage";
+export type Coll = "accounts" | "usernames" | "lots" | "bays" | "bookings" | "txns" | "footage" | "notices";
 export type Filter = [field: string, value: unknown] | null;
 
 export interface Tx {

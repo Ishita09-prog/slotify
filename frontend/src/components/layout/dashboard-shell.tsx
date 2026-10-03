@@ -15,6 +15,7 @@ import { useSlotify } from "@/lib/store";
 import { useCity } from "@/lib/city";
 import { CitySwitcher } from "@/components/layout/city-switcher";
 import { LiveCameraLauncher } from "@/components/vision/live-camera";
+import { DriverAlerts } from "@/components/live/driver-alerts";
 import { cn } from "@/lib/utils";
 
 export type Role = "user" | "owner" | "police";
@@ -27,6 +28,7 @@ const NAV: Record<Role, { title: string; subtitle: string; items: { href: string
       { href: "/user", label: "Find parking", icon: MapIcon },
       { href: "/user/predict", label: "AI forecast", icon: BrainCircuit },
       { href: "/user/bookings", label: "My bookings", icon: Ticket },
+      { href: "/user/notices", label: "Notices", icon: Siren },
       { href: "/user/wallet", label: "FASTag", icon: Wallet },
       { href: "/user/profile", label: "Profile", icon: UserRound },
     ],
@@ -186,7 +188,7 @@ function BottomTabs({ role }: { role: Role }) {
         return (
           <Link key={it.href} href={it.href} className={cn("flex flex-col items-center gap-0.5 rounded-xl py-2 text-[10px] font-semibold transition-colors", active ? "bg-primary/15 text-primary" : "text-muted-foreground")}>
             <Icon className="size-5" />
-            {it.label}
+            <span className="max-w-full truncate px-0.5">{it.label.replace("My ", "").replace("AI forecast", "Forecast").replace("Find parking", "Find")}</span>
           </Link>
         );
       })}
@@ -297,6 +299,7 @@ export function DashboardShell({ role, children }: { role: Role; children: React
           )}
         </main>
         {role !== "police" && allowed && <BottomTabs role={role} />}
+        {role === "user" && allowed && <DriverAlerts />}
       </div>
     </div>
   );

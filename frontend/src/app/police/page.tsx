@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { BadgeIndianRupee, FileWarning, ScanLine, Search, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/dashboard-shell";
+import { PoliceNotices } from "@/components/live/police-notices";
 import { Plate } from "@/components/brand/plate";
 import { StatCard } from "@/components/parking/stat-card";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,8 @@ export default function ViolationsPage() {
         <StatCard label="Challans issued" value={challans.length} icon={ShieldCheck} tone="primary" />
         <StatCard label="Fines raised" value={formatINR(fines)} icon={BadgeIndianRupee} tone="accent" />
       </div>
+
+      <PoliceNotices />
 
       <CommandDispatches />
 

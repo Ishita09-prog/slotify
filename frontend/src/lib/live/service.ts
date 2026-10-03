@@ -3,7 +3,7 @@ import { cleanUsername, UserError, type Store } from "./store";
 import { istDateKey, slotKey, windowRange, windowHours } from "./time";
 import {
   COVER, HOLD_MS, NO_SHOW_GRACE_MS,
-  type Account, type Bay, type LiveBooking, type LiveLot, type Occupant, type PayMethod, type Role, type TimeWindow, type Txn, type Vehicle,
+  type Account, type Bay, type LiveBooking, type LiveLot, type Occupant, type PayMethod, type PoliceNotice, type Role, type TimeWindow, type Txn, type Vehicle,
 } from "./types";
 
 /* ============================== accounts ============================== */
@@ -338,4 +338,61 @@ function rid(prefix: string) {
   let s = prefix;
   for (let i = 0; i < 8; i++) s += a[Math.floor(Math.random() * a.length)];
   return s;
+}
+
+/* ======================= traffic police notices ======================= */
+
+export async function findDriverByPlate(store: Store, plate: string) {
+  const drivers = await store.query<Account>("accounts", ["role", "driver"]);
+  return drivers.find((d) => d.vehicles?.some((v) => v.number === plate)) ?? null;
+}
+
+export async function issueNotice(store: Store, input: { plate: string; violation: string; location: string; fine: number; issuedBy: string }) {
+  const driver = await findDriverByPlate(store, input.plate);
+  const now = Date.now();
+  const n: PoliceNotice = {
+    id: rid("PN-"),
+    plate: input.plate,
+    kind: "notice",
+    violation: input.violation,
+    location: input.location,
+    fine: input.fine,
+    issuedBy: input.issuedBy,
+    createdAt: now,
+    dueAt: now + 10 * 60_000,
+    status: "sent",
+    driverUid: driver?.id ?? null,
+    driverName: driver?.name ?? null,
+    updatedAt: now,
+  };
+  await store.set("notices", n.id, n);
+  return n;
+}
+
+export async function updateNotice(store: Store, n: PoliceNotice, patch: Partial<PoliceNotice>) {
+  await store.set("notices", n.id, { ...n, ...patch, updatedAt: Date.now() });
+}
+
+export async function escalateToChallan(store: Store, n: PoliceNotice) {
+  await updateNotice(store, n, { kind: "challan", status: "sent", dueAt: Date.now() + 7 * 24 * 3600_000 });
+}
+
+/** Driver pays an e-challan; FASTag debits the wallet atomically. */
+export async function payChallan(store: Store, noticeId: string, uid: string, method: PayMethod) {
+  return store.tx(async (t) => {
+    const n = await t.get<PoliceNotice>("notices", noticeId);
+    const acc = await t.get<Account>("accounts", uid);
+    if (!n || !acc) throw new UserError("Challan not found.");
+    if (n.status === "paid") throw new UserError("Already paid.");
+    const now = Date.now();
+    if (method === "fastag") {
+      const bal = acc.fastag?.balance ?? 0;
+      if (!acc.fastag || bal < n.fine) throw new LowBalance(bal, n.fine);
+      const balance = bal - n.fine;
+      t.set("accounts", acc.id, { ...acc, fastag: { ...acc.fastag, balance } });
+      const txn: Txn = { id: rid("TX"), uid, kind: "debit", amount: n.fine, desc: `e-Challan ${n.id} · ${n.violation}`, at: now, balanceAfter: balance, method: "fastag" };
+      t.set("txns", txn.id, txn);
+    }
+    t.set("notices", n.id, { ...n, status: "paid", paidMethod: method, updatedAt: now });
+  });
 }
