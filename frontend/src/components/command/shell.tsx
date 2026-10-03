@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Activity, BrainCircuit, Cctv, FileText, FlaskConical, LayoutDashboard, LogOut, Network, ScrollText, ServerCrash, ShieldCheck, Siren,
+  Activity, BrainCircuit, Cctv, FileText, FlaskConical, LayoutDashboard, LogOut, Network, Scale, ScrollText, ServerCrash, ShieldCheck, Siren,
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { CitySwitcher } from "@/components/layout/city-switcher";
@@ -24,6 +24,7 @@ const NAV = [
   { href: "/command/forecast", label: "AI & forecasts", icon: BrainCircuit },
   { href: "/command/health", label: "System health", icon: Activity },
   { href: "/command/audit", label: "Audit trail", icon: ScrollText },
+  { href: "/command/disputes", label: "FASTag disputes", icon: Scale },
   { href: "/command/reports", label: "Reports", icon: FileText },
   { href: "/command/architecture", label: "Architecture", icon: Network },
 ];
@@ -167,7 +168,7 @@ export function CommandShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-[1100] grid grid-cols-8 border-t border-[hsl(var(--cc-line))] bg-[hsl(222_47%_5%/0.96)] md:hidden" aria-label="Command Centre mobile">
+      <nav className="fixed inset-x-0 bottom-0 z-[1100] grid grid-cols-9 border-t border-[hsl(var(--cc-line))] bg-[hsl(222_47%_5%/0.96)] md:hidden" aria-label="Command Centre mobile">
         {NAV.map((n) => {
           const active = n.href === "/command" ? pathname === n.href : pathname.startsWith(n.href);
           const Icon = n.icon;
