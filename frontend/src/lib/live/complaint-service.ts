@@ -108,3 +108,39 @@ export async function findRelatedBookings(store: Store, c: Complaint): Promise<R
     .sort((x, y) => (x.minutesFromCharge ?? 1e9) - (y.minutesFromCharge ?? 1e9))
     .slice(0, 5);
 }
+
+/**
+ * Gate detected a tag–plate mismatch (or a hotlisted tag): open a "Number Plate Cloning" case on behalf of the
+ * registered owner of the plate, routed to the lot operator like any complaint. Re-uses an open case for the same plate & lot.
+ */
+export async function autoFlagCloning(
+  store: Store,
+  a: { victimUid: string; victimName: string; plate: string; lot: { id: string; name: string; area?: string; ownerUid: string }; gateRef: string; detail: string; tagId: string; tagVehicle: string }
+): Promise<Complaint | null> {
+  const mine = await store.query<Complaint>("complaints", ["userId", a.victimUid]);
+  const open = mine.find((c) => c.vehicleNumber === a.plate && c.lotId === a.lot.id && c.complaintType === "plate_cloning" && c.status !== "resolved" && c.status !== "rejected");
+  if (open) return null;
+  const now = Date.now();
+  const c = wrap(() =>
+    newComplaint(
+      {
+        id: rid("FC-"),
+        driver: { id: a.victimUid, name: a.victimName, role: "driver" },
+        ownerUid: a.lot.ownerUid,
+        lotId: a.lot.id,
+        transactionId: a.gateRef,
+        vehicleNumber: a.plate,
+        parkingLocation: a.lot.area ? `${a.lot.name} · ${a.lot.area}` : a.lot.name,
+        incidentAt: now,
+        complaintType: "plate_cloning",
+        description: `Auto-flagged by the Slotify gate: ${a.detail} Tag read: ${a.tagId} (registered to ${a.tagVehicle}). No charge was made.`,
+        attachments: [],
+        txn: null,
+      },
+      now
+    )
+  );
+  c.auditLog[0] = { at: now, actorId: "system", actorName: "Slotify gate (ANPR + RFID)", actorRole: "system", action: "Auto-flagged: tag–plate mismatch", note: a.detail, from: null, to: c.status };
+  await store.set("complaints", c.id, c);
+  return c;
+}

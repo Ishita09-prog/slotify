@@ -1,6 +1,7 @@
 import type { SlotType } from "../types";
 import { cleanUsername, UserError, type Store } from "./store";
 import { istDateKey, slotKey, windowRange, windowHours } from "./time";
+import { rrnFor, type NetcInfo } from "./netc";
 import { hourlyBlockedByPlan, keyToIso, overlaps, planConflict, planRefund, quotePlan, type PlanQuote, type PlanSpec } from "./plans";
 import {
   HOLD_MS, NO_SHOW_GRACE_MS, bikeRate, coverFor,
@@ -356,7 +357,7 @@ export function exitQuote(b: LiveBooking, now = Date.now()) {
   return { ms, hours, fee, due: Math.max(0, fee - b.cover) };
 }
 
-export async function gateExit(store: Store, bookingId: string, method: PayMethod) {
+export async function gateExit(store: Store, bookingId: string, method: PayMethod, netc?: NetcInfo | null) {
   return store.tx(async (t) => {
     const b = await t.get<LiveBooking>("bookings", bookingId);
     if (!b) throw new UserError("Booking not found.");
@@ -367,18 +368,30 @@ export async function gateExit(store: Store, bookingId: string, method: PayMetho
     const q = exitQuote(b, now);
     if (method === "fastag") {
       const bal = acc?.fastag?.balance ?? 0;
+      if (acc?.fastag?.status === "hotlisted" || acc?.fastag?.status === "blacklisted") throw new UserError(`FASTag is ${acc.fastag.status} on NETC. Collect by UPI, QR or card.`);
       if (!acc?.fastag || bal < q.due) throw new LowBalance(bal, q.due);
     }
     if (bay) t.set("bays", bay.id, clearOccupant(bay, b));
+    const txnSeed = `${b.id}-exit`;
     const done: LiveBooking = { ...b, status: "completed", exitAt: now, fee: q.fee, paidAtExit: q.due, exitMethod: method };
     t.set("bookings", b.id, done);
     if (method === "fastag" && acc?.fastag && q.due > 0) {
       const balance = acc.fastag.balance - q.due;
       t.set("accounts", acc.id, { ...acc, fastag: { ...acc.fastag, balance } });
-      const txn: Txn = { id: rid("TX"), uid: acc.id, kind: "debit", amount: q.due, desc: `Parking ${b.lotName} · ${b.bayLabel} · ${q.hours} h (₹${b.cover} cover adjusted)`, at: now, balanceAfter: balance, method: "fastag-gate" };
+      const txn: Txn = { id: rid("TX"), uid: acc.id, kind: "debit", amount: q.due, desc: `Parking ${b.lotName} · ${b.bayLabel} · ${q.hours} h (₹${b.cover} cover adjusted)`, at: now, balanceAfter: balance, method: "fastag-gate", netc: netc ? { ...netc, rrn: rrnFor(txnSeed) } : null };
       t.set("txns", txn.id, txn);
+      return { booking: done, ...q, txn };
     }
-    return { booking: done, ...q };
+    return { booking: done, ...q, txn: null as Txn | null };
+  });
+}
+
+/** Driver reports a lost / stolen tag (NETC hotlist) or reactivates it. */
+export async function setTagStatus(store: Store, uid: string, status: "active" | "hotlisted") {
+  return store.tx(async (t) => {
+    const acc = await t.get<Account>("accounts", uid);
+    if (!acc?.fastag) throw new UserError("No FASTag linked to this account.");
+    t.set("accounts", uid, { ...acc, fastag: { ...acc.fastag, status } });
   });
 }
 

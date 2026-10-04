@@ -4,7 +4,11 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import QRCode from "qrcode";
-import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Loader2, QrCode, Radio, ScanLine, Smartphone, Wallet } from "lucide-react";
+import Link from "next/link";
+import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Landmark, Loader2, QrCode, Radio, ScanLine, ShieldAlert, Smartphone, Wallet } from "lucide-react";
+import { FastagTrace } from "@/components/live/fastag-trace";
+import { autoFlagCloning } from "@/lib/live/complaint-service";
+import { DRILL_LABEL, netcCheck, settlementAt, type TagCheck, type TagDrill } from "@/lib/live/netc";
 import { toast } from "sonner";
 import { GateCamera } from "@/components/vision/gate-camera";
 import { PageHeader } from "@/components/layout/dashboard-shell";
@@ -14,15 +18,16 @@ import { Select } from "@/components/ui/select";
 import { useLive, useTick } from "@/lib/live/provider";
 import { exitQuote, findAtGate, gateEntry, gateExit, LowBalance } from "@/lib/live/service";
 import { fmtDur, fmtTime } from "@/lib/live/time";
-import type { Account, LiveBooking, PayMethod } from "@/lib/live/types";
+import type { Account, LiveBooking, PayMethod, Txn } from "@/lib/live/types";
 import { cn, formatINR, isValidPlate, normalizePlate } from "@/lib/utils";
 
 type Result =
   | { kind: "none"; plate: string }
   | { kind: "found"; booking: LiveBooking; tag?: Account["fastag"] }
   | { kind: "entered"; booking: LiveBooking }
-  | { kind: "low"; booking: LiveBooking; balance: number; due: number }
-  | { kind: "exited"; booking: LiveBooking; due: number; hours: number; method: PayMethod };
+  | { kind: "low"; booking: LiveBooking; balance: number; due: number; reason?: string }
+  | { kind: "blocked"; booking: LiveBooking; check: TagCheck; caseId?: string | null; stage: "entry" | "exit" }
+  | { kind: "exited"; booking: LiveBooking; due: number; hours: number; method: PayMethod; txn: Txn | null; bank?: string };
 
 function editDistance(a: string, b: string) {
   const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
@@ -48,6 +53,28 @@ function Gate() {
   const [open, setOpen] = useState(false);
   const [qr, setQr] = useState<string | null>(null);
   const [log, setLog] = useState<{ at: number; text: string; dir: "in" | "out" }[]>([]);
+  const [drill, setDrill] = useState<TagDrill>("genuine");
+
+  /** RFID read + NETC checks (exception list, tag–plate match, balance). Holds the car on mismatch / hotlist. */
+  const checkTag = async (b: LiveBooking, due: number, stage: "entry" | "exit"): Promise<{ check: TagCheck; acc: Account | null } | null> => {
+    if (!live.store || !lot) return null;
+    const acc = await live.store.get<Account>("accounts", b.driverUid);
+    const check = netcCheck({ acc, plate: b.vehicle, due, lotId: lot.id, drill, seed: `${b.id}-${stage}` });
+    if (!check.hold) return { check, acc };
+    let caseId: string | null = null;
+    if (check.code === "MISMATCH") {
+      try {
+        const c = await autoFlagCloning(live.store, { victimUid: b.driverUid, victimName: b.driverName, plate: b.vehicle, lot, gateRef: `GATE-${check.info.rrn}`, detail: check.detail, tagId: check.info.tagId, tagVehicle: check.info.tagVehicle });
+        caseId = c?.id ?? null;
+      } catch (e) {
+        toast.error((e as Error).message);
+      }
+    }
+    setRes({ kind: "blocked", booking: b, check, caseId, stage });
+    setLog((l) => [{ at: Date.now(), text: `${b.vehicle} HELD · ${check.title}`, dir: stage === "entry" ? ("in" as const) : ("out" as const) }, ...l].slice(0, 8));
+    toast.error(check.title);
+    return null;
+  };
 
   const arriving = live.bookings.filter((b) => b.lotId === lotId && b.status === "booked" && b.mode !== "plan").sort((a, b) => a.startAt - b.startAt);
   const inside = live.bookings.filter((b) => b.lotId === lotId && b.status === "parked");
@@ -101,6 +128,9 @@ function Gate() {
     if (!live.store) return;
     setBusy(true);
     try {
+      const ok = await checkTag(b, 0, "entry");
+      if (!ok) return;
+      if (ok.check.fallback) toast.warning(`${ok.check.title}: entry allowed, collect the exit fee by UPI / QR / card.`);
       const nb = await gateEntry(live.store, b.id);
       setRes({ kind: "entered", booking: nb });
       flashGate();
@@ -117,8 +147,22 @@ function Gate() {
     if (!live.store) return;
     setBusy(true);
     try {
-      const r = await gateExit(live.store, b.id, method);
-      setRes({ kind: "exited", booking: r.booking, due: r.due, hours: r.hours, method });
+      let netc = null;
+      let bank: string | undefined;
+      if (method === "fastag") {
+        const due = exitQuote(b).due;
+        const ok = await checkTag(b, due, "exit");
+        if (!ok) return;
+        if (ok.check.fallback) {
+          setRes({ kind: "low", booking: b, balance: ok.acc?.fastag?.balance ?? 0, due, reason: ok.check.title });
+          toast.warning(`${ok.check.title}. Collect by UPI, QR or card.`);
+          return;
+        }
+        netc = ok.check.info;
+        bank = ok.acc?.fastag?.bank;
+      }
+      const r = await gateExit(live.store, b.id, method, netc);
+      setRes({ kind: "exited", booking: r.booking, due: r.due, hours: r.hours, method, txn: r.txn, bank });
       flashGate();
       setLog((l) => [{ at: Date.now(), text: `${b.vehicle} left · ${formatINR(r.due)} via ${method === "fastag" ? "FASTag" : method.toUpperCase()}`, dir: "out" as const }, ...l].slice(0, 8));
       toast.success(`Paid ${formatINR(r.due)} · bay ${b.bayLabel} is free again for everyone`);
@@ -170,6 +214,13 @@ function Gate() {
                 <label className="flex items-center gap-1.5 text-xs text-muted-foreground"><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> Open gate & charge FASTag automatically</label>
               </div>
               <GateCamera onRead={onAnpr} disabled={busy} />
+              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-dashed p-2 text-xs">
+                <Radio className="size-3.5 text-primary" /> <span className="font-semibold">RFID reader simulation</span>
+                <select aria-label="Simulated tag read" value={drill} onChange={(e) => setDrill(e.target.value as TagDrill)} className="rounded-md border bg-background px-2 py-1 text-xs text-foreground">
+                  {(Object.keys(DRILL_LABEL) as TagDrill[]).map((d) => <option key={d} value={d}>{DRILL_LABEL[d]}</option>)}
+                </select>
+                <span className="text-muted-foreground">Every read is checked against NETC: exception list, tag–plate match, balance.</span>
+              </div>
             </div>
             <form className="flex flex-col gap-3 p-5 sm:flex-row" onSubmit={(e) => { e.preventDefault(); if (isValidPlate(plate)) void scan(); }}>
               <div className="flex flex-1 items-center rounded-xl border-2 border-foreground/80 bg-white px-3 text-slate-900">
@@ -216,8 +267,8 @@ function Gate() {
                   })()}
                   {res.kind === "low" && (
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-status-reserved">FASTag balance low</p>
-                      <h3 className="mt-1 font-display text-xl font-extrabold">Balance {formatINR(res.balance)} · due {formatINR(res.due)}</h3>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-status-reserved">{res.reason ?? "FASTag balance low"}</p>
+                      <h3 className="mt-1 font-display text-xl font-extrabold">{res.reason && res.reason !== "Low balance" ? `Due ${formatINR(res.due)}` : `Balance ${formatINR(res.balance)} · due ${formatINR(res.due)}`}</h3>
                       <p className="mt-1 text-sm text-muted-foreground">Fallback: UPI → QR → card. The gate opens as soon as payment is confirmed.</p>
                       <div className="mt-4 grid gap-2 sm:grid-cols-3">
                         <Button variant="outline" disabled={busy} onClick={() => exit(res.booking, "upi")}><Smartphone /> UPI request</Button>
@@ -239,7 +290,39 @@ function Gate() {
                     <p className="text-sm"><b className="text-status-available">Gate opened.</b> {res.booking.vehicle} is parked in bay <b>{res.booking.bayLabel}</b>. It now shows as parked on every driver&apos;s screen.</p>
                   )}
                   {res.kind === "exited" && (
-                    <p className="text-sm"><b className="text-status-available">Paid {formatINR(res.due)} via {res.method === "fastag" ? "FASTag" : res.method.toUpperCase()}.</b> {res.hours} h parked; ₹{res.booking.cover} cover adjusted. Bay {res.booking.bayLabel} is free again for everyone.</p>
+                    <div className="space-y-4">
+                      <p className="text-sm"><b className="text-status-available">Paid {formatINR(res.due)} via {res.method === "fastag" ? "FASTag" : res.method.toUpperCase()}.</b> {res.hours} h parked; ₹{res.booking.cover} cover adjusted. Bay {res.booking.bayLabel} is free again for everyone.</p>
+                      {res.txn && (
+                        <div className="rounded-xl border p-3">
+                          <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Live FASTag trace · {res.txn.id}</p>
+                          <FastagTrace txn={res.txn} bank={res.bank} play />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {res.kind === "blocked" && (
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3 rounded-xl border border-status-occupied/60 bg-status-occupied/10 p-3">
+                        <ShieldAlert className="mt-0.5 size-6 shrink-0 text-status-occupied" />
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wider text-status-occupied">Gate held at {res.stage} · no charge made</p>
+                          <h3 className="font-display text-xl font-extrabold">{res.check.title}</h3>
+                          <p className="mt-1 text-sm">{res.check.detail}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+                        {[["Camera read", res.check.info.plateRead], ["Tag registered to", res.check.info.tagVehicle], ["Tag ID", res.check.info.tagId], ["NETC status", res.check.info.tagStatus]].map(([l, v]) => (
+                          <div key={l} className="rounded-lg bg-secondary/50 p-2"><p className="text-[11px] text-muted-foreground">{l}</p><p className={cn("break-all font-mono text-xs font-bold", l !== "Tag ID" && res.check.code === "MISMATCH" && "text-status-occupied")}>{v}</p></div>
+                        ))}
+                      </div>
+                      {res.caseId ? (
+                        <p className="text-sm">Fraud case <Link href={`/owner/complaints/view?id=${res.caseId}`} className="font-mono font-bold text-primary underline">{res.caseId}</Link> opened for the registered owner of {res.booking.vehicle}. Attach the CCTV still and forward it to the Command Centre.</p>
+                      ) : res.check.code === "MISMATCH" ? (
+                        <p className="text-sm text-muted-foreground">An open fraud case already exists for this plate at this lot.</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Security alerted. The tag owner gets a notification from their issuer bank.</p>
+                      )}
+                    </div>
                   )}
                 </Card>
               </motion.div>
@@ -278,6 +361,23 @@ function Gate() {
               </ul>
             )}
           </Card>
+          {(() => {
+            const day = new Date(now + 5.5 * 3600_000).toISOString().slice(0, 10);
+            const todays = live.bookings.filter((b) => b.ownerUid === live.uid && b.exitAt && new Date(b.exitAt + 5.5 * 3600_000).toISOString().slice(0, 10) === day);
+            const tagGate = todays.filter((b) => b.exitMethod === "fastag").reduce((a, b) => a + (b.paidAtExit ?? 0), 0);
+            const other = todays.filter((b) => b.exitMethod && b.exitMethod !== "fastag").reduce((a, b) => a + (b.paidAtExit ?? 0), 0);
+            return (
+              <Card className="p-4">
+                <h2 className="flex items-center gap-2 font-display font-bold"><Landmark className="size-4 text-primary" /> Today&apos;s settlement</h2>
+                <div className="mt-2 space-y-1 text-sm">
+                  <div className="flex justify-between"><span className="text-muted-foreground">FASTag exit fees</span><b>{formatINR(tagGate)}</b></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">UPI / QR / card</span><b>{formatINR(other)}</b></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Exits today</span><b>{todays.length}</b></div>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground">FASTag money reaches your bank via the acquirer on {new Date(settlementAt(now)).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} (T+1, NETC cycle).</p>
+              </Card>
+            );
+          })()}
           {log.length > 0 && (
             <Card className="p-4">
               <h2 className="font-display font-bold">Gate log</h2>

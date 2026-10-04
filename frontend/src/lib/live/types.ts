@@ -18,6 +18,8 @@ export interface Fastag {
   bank: string;
   balance: number;
   vehicle: string;
+  /** NETC tag status; absent = active. The driver can hotlist a lost/stolen tag from the app. */
+  status?: "active" | "low_balance" | "blacklisted" | "hotlisted" | "closed";
 }
 
 export interface Account {
@@ -163,6 +165,8 @@ export interface Txn {
   at: number;
   balanceAfter: number;
   method: PayMethod | "fastag-gate" | "recharge";
+  /** gate charges: tag read, plate read, issuer/acquirer and NETC reference (see netc.ts) */
+  netc?: import("./netc").NetcInfo | null;
 }
 
 export const COVER = 25;

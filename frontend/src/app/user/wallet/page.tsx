@@ -1,13 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Radio, Wallet } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Radio, ShieldAlert, Wallet } from "lucide-react";
+import { FastagTrace } from "@/components/live/fastag-trace";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import type { Txn } from "@/lib/live/types";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/layout/dashboard-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useLive } from "@/lib/live/provider";
-import { recharge } from "@/lib/live/service";
+import { recharge, setTagStatus } from "@/lib/live/service";
 import { fmtDateTime } from "@/lib/live/time";
 import { cn, formatINR } from "@/lib/utils";
 
@@ -15,6 +18,20 @@ export default function WalletPage() {
   const live = useLive();
   const tag = live.account?.fastag;
   const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState<Txn | null>(null);
+  const hot = tag?.status === "hotlisted";
+  const toggleHot = async () => {
+    if (!live.store || !live.uid) return;
+    setBusy(true);
+    try {
+      await setTagStatus(live.store, live.uid, hot ? "active" : "hotlisted");
+      toast.success(hot ? "Tag reactivated on NETC" : "Tag hotlisted on NETC. Any gate that reads it will stop the car and alert security.");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const add = async (amt: number) => {
     if (!live.store || !live.uid) return;
@@ -60,13 +77,22 @@ export default function WalletPage() {
               </div>
               {tag.balance < 100 && <p className="mt-2 text-xs text-status-reserved">Low balance. If it can&apos;t cover the exit fee, the gate falls back to UPI or QR.</p>}
             </Card>
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold">Tag status on NETC</p>
+                <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", hot ? "bg-status-occupied/15 text-status-occupied" : "bg-status-available/15 text-status-available")}>{hot ? "Hotlisted" : "Active"}</span>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{hot ? "Gates that read this tag hold the vehicle and alert security. Reactivate once you have the tag back." : "Lost the tag or the car was stolen? Hotlist it so no one can pay or park with it."}</p>
+              <Button variant={hot ? "outline" : "destructive"} size="sm" className="mt-3" disabled={busy} onClick={toggleHot}><ShieldAlert /> {hot ? "Reactivate tag" : "Report tag lost / stolen"}</Button>
+            </Card>
           </div>
           <Card className="p-4">
             <h2 className="font-display font-bold">Transactions</h2>
+            <p className="text-xs text-muted-foreground">Tap one to trace it through the FASTag network: tag → gate → bank → NPCI → your issuer.</p>
             {live.txns.length === 0 ? <p className="mt-3 text-sm text-muted-foreground">No transactions yet. Recharge to get started.</p> : (
               <ul className="mt-2 divide-y">
                 {live.txns.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3 py-3">
+                  <li key={t.id}><button onClick={() => setOpen(t)} className="flex w-full items-center gap-3 py-3 text-left hover:bg-secondary/40">
                     <span className={cn("grid size-9 shrink-0 place-items-center rounded-full", t.kind === "credit" ? "bg-status-available/15 text-status-available" : "bg-secondary")}>
                       {t.kind === "credit" ? <ArrowDownLeft className="size-4" /> : <ArrowUpRight className="size-4" />}
                     </span>
@@ -78,13 +104,22 @@ export default function WalletPage() {
                       <p className={cn("font-semibold tabular-nums", t.kind === "credit" && "text-status-available")}>{t.kind === "credit" ? "+" : "−"}{formatINR(t.amount)}</p>
                       <p className="text-[11px] text-muted-foreground">bal {formatINR(t.balanceAfter)}</p>
                     </div>
-                  </li>
+                    <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                  </button></li>
                 ))}
               </ul>
             )}
           </Card>
         </div>
       )}
+      <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
+        <DialogContent className="max-w-xl">
+          <DialogTitle>Transaction trace</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">{open?.id} · {open ? fmtDateTime(open.at) : ""}</DialogDescription>
+          {open && <FastagTrace txn={open} bank={tag?.bank} />}
+          <p className="text-[11px] text-muted-foreground">Banks and NPCI are simulated (NETC sandbox). Reference numbers are stable for each transaction.</p>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
