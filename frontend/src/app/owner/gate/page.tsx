@@ -7,6 +7,8 @@ import QRCode from "qrcode";
 import Link from "next/link";
 import { ArrowDownToLine, ArrowUpFromLine, CreditCard, Landmark, Loader2, QrCode, Radio, ScanLine, ShieldAlert, Smartphone, Wallet } from "lucide-react";
 import { FastagTrace } from "@/components/live/fastag-trace";
+import { GATEWAY_MS, PayGateway } from "@/components/fx/pay-gateway";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { autoFlagCloning } from "@/lib/live/complaint-service";
 import { DRILL_LABEL, netcCheck, settlementAt, type TagCheck, type TagDrill } from "@/lib/live/netc";
 import { toast } from "sonner";
@@ -35,6 +37,39 @@ function editDistance(a: string, b: string) {
   for (let i = 1; i <= a.length; i++)
     for (let j = 1; j <= b.length; j++) dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
   return dp[a.length][b.length];
+}
+
+/** Soft barrier sound: a low motor hum sweeping up, then a gentle click. Web Audio, no files. */
+function gateSound() {
+  try {
+    const A = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new A();
+    const t = ctx.currentTime;
+    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(70, t);
+    o.frequency.exponentialRampToValueAtTime(140, t + 0.9);
+    f.type = "lowpass";
+    f.frequency.value = 500;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.06, t + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.0);
+    o.connect(f).connect(g).connect(ctx.destination);
+    o.start(t);
+    o.stop(t + 1.05);
+    const c = ctx.createOscillator(), cg = ctx.createGain();
+    c.type = "sine";
+    c.frequency.value = 880;
+    cg.gain.setValueAtTime(0.0001, t + 1.0);
+    cg.gain.exponentialRampToValueAtTime(0.08, t + 1.02);
+    cg.gain.exponentialRampToValueAtTime(0.0001, t + 1.25);
+    c.connect(cg).connect(ctx.destination);
+    c.start(t + 1.0);
+    c.stop(t + 1.3);
+    window.setTimeout(() => void ctx.close(), 1600);
+  } catch {
+    /* audio not available */
+  }
 }
 
 function Gate() {
@@ -79,7 +114,9 @@ function Gate() {
   const arriving = live.bookings.filter((b) => b.lotId === lotId && b.status === "booked" && b.mode !== "plan").sort((a, b) => a.startAt - b.startAt);
   const inside = live.bookings.filter((b) => b.lotId === lotId && b.status === "parked");
 
+  const [paying, setPaying] = useState<{ amount: number; method: PayMethod } | null>(null);
   const flashGate = () => {
+    gateSound();
     setOpen(true);
     window.setTimeout(() => setOpen(false), 3500);
   };
@@ -160,6 +197,14 @@ function Gate() {
         }
         netc = ok.check.info;
         bank = ok.acc?.fastag?.bank;
+      }
+      if (method !== "fastag") {
+        const due = exitQuote(b).due;
+        if (due > 0) {
+          setPaying({ amount: due, method });
+          await new Promise((r) => setTimeout(r, GATEWAY_MS));
+          setPaying(null);
+        }
       }
       const r = await gateExit(live.store, b.id, method, netc);
       setRes({ kind: "exited", booking: r.booking, due: r.due, hours: r.hours, method, txn: r.txn, bank });
@@ -388,6 +433,13 @@ function Gate() {
           )}
         </div>
       </div>
+      <Dialog open={!!paying}>
+        <DialogContent hideClose>
+          <DialogTitle className="sr-only">Processing payment</DialogTitle>
+          <DialogDescription className="sr-only">Authorising the exit fee</DialogDescription>
+          {paying && <PayGateway amount={paying.amount} method={paying.method} />}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

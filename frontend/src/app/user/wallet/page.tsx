@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Radio, ShieldAlert, Wallet } from "lucide-react";
 import { FastagTrace } from "@/components/live/fastag-trace";
+import { GATEWAY_MS, PayGateway } from "@/components/fx/pay-gateway";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { Txn } from "@/lib/live/types";
 import { toast } from "sonner";
@@ -33,10 +34,14 @@ export default function WalletPage() {
     }
   };
 
+  const [paying, setPaying] = useState<number | null>(null);
   const add = async (amt: number) => {
     if (!live.store || !live.uid) return;
     setBusy(true);
     try {
+      setPaying(amt);
+      await new Promise((r) => setTimeout(r, GATEWAY_MS));
+      setPaying(null);
       await recharge(live.store, live.uid, amt, "upi");
       toast.success(`${formatINR(amt)} added via UPI`);
     } catch (e) {
@@ -112,6 +117,13 @@ export default function WalletPage() {
           </Card>
         </div>
       )}
+      <Dialog open={paying != null}>
+        <DialogContent hideClose>
+          <DialogTitle className="sr-only">Processing recharge</DialogTitle>
+          <DialogDescription className="sr-only">Authorising UPI payment</DialogDescription>
+          {paying != null && <PayGateway amount={paying} method="upi" />}
+        </DialogContent>
+      </Dialog>
       <Dialog open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogContent className="max-w-xl">
           <DialogTitle>Transaction trace</DialogTitle>

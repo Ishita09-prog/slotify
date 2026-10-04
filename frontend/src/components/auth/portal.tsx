@@ -8,6 +8,7 @@ import { ArrowLeft, ArrowRight, Building2, CarFront, Check, KeyRound, Loader2, L
 import { toast } from "sonner";
 import { Logo } from "@/components/brand/logo";
 import { CitySwitcher } from "@/components/layout/city-switcher";
+import { Tilt } from "@/components/fx/tilt";
 import { useCity } from "@/lib/city";
 import { ROLES, demoUsers, type RoleId } from "@/lib/command/rbac";
 import { useCommand } from "@/lib/command/store";
@@ -85,15 +86,18 @@ export function PortalChooser() {
           const Icon = p.icon;
           return (
             <motion.div key={p.slug} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * i }}>
-              <Link href={`/login/${p.slug}`} className="glass-card group relative flex items-center gap-4 overflow-hidden rounded-3xl p-5 transition hover:-translate-y-0.5 hover:border-white/25">
-                <span className={cn("absolute inset-0 bg-gradient-to-br opacity-60 transition group-hover:opacity-100", p.accent)} aria-hidden />
-                <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10"><Icon className="size-6" /></span>
+              <Tilt className="rounded-3xl">
+              <Link href={`/login/${p.slug}`} className="glass-card group relative flex items-center gap-4 overflow-hidden rounded-3xl border-white/15 bg-[#0b1224]/55 p-5 shadow-[0_20px_60px_-20px_rgba(0,0,0,.9)] backdrop-blur-2xl transition hover:border-sky-300/40 hover:shadow-[0_24px_70px_-18px_rgba(56,189,248,.35)]">
+                <span className={cn("absolute inset-0 bg-gradient-to-br opacity-40 transition duration-500 group-hover:opacity-90", p.accent)} aria-hidden />
+                <span className="absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" aria-hidden />
+                <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl border border-white/20 bg-white/10 shadow-inner transition duration-300 group-hover:scale-110 group-hover:bg-white/15"><Icon className="size-6" /></span>
                 <span className="relative min-w-0 flex-1 text-left">
                   <span className="block text-lg font-semibold tracking-tight">{p.title}</span>
                   <span className="block truncate text-sm text-slate-300/80">{p.sub}</span>
                 </span>
-                <ArrowRight className="relative size-5 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-white" />
+                <ArrowRight className="relative size-5 text-slate-400 transition group-hover:translate-x-1 group-hover:text-white" />
               </Link>
+              </Tilt>
             </motion.div>
           );
         })}
