@@ -34,7 +34,7 @@ export function PortalShell({ children, back = true }: { children: React.ReactNo
   return (
     <div className="portal-root relative min-h-dvh overflow-hidden text-slate-100">
       {/* Optional hero video: drop a clip at frontend/public/media/portal.mp4 (hidden automatically if missing) */}
-      <video aria-hidden autoPlay muted loop playsInline preload="auto" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30" onError={(e) => (e.currentTarget.style.display = "none")}>
+      <video aria-hidden autoPlay muted loop playsInline preload="auto" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-50" onError={(e) => (e.currentTarget.style.display = "none")}>
         <source src="/media/portal.mp4" type="video/mp4" onError={(e) => ((e.currentTarget.parentElement as HTMLVideoElement).style.display = "none")} />
       </video>
       <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070b16]/70 via-[#070b16]/40 to-[#070b16]/90" />
