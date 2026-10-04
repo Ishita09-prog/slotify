@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/layout/dashboard-shell";
-import { ComplaintActions, ComplaintDetail, useComplaint } from "@/components/live/complaint-ui";
+import { ComplaintActions, ComplaintDetail, OwnerEvidencePanel, useComplaint } from "@/components/live/complaint-ui";
 import { Card } from "@/components/ui/card";
 import { complaintAction } from "@/lib/live/complaint-service";
 import { useLive } from "@/lib/live/provider";
@@ -35,6 +35,7 @@ function View() {
         <>
           <PageHeader title="Review complaint" description="Check your gate records below. Forward it if the driver's claim looks credible." />
           <div className="space-y-4">
+            <OwnerEvidencePanel c={c} actor={actor} />
             <ComplaintActions c={c} actor={actor} />
             <ComplaintDetail c={c} viewer="owner" />
           </div>

@@ -32,9 +32,15 @@ export interface Attachment {
   name: string;
   mime: string;
   size: number;
-  /** data: URL. Kept small (see EVIDENCE_LIMITS) so the document fits Firestore's 1 MiB cap. */
+  /** data: URL. Kept small (see EVIDENCE_LIMITS) so the document fits Firestore's 1 MiB cap. Empty for a clip. */
   dataUrl: string;
+  /** operator evidence: the camera time this still / recording shows */
+  capturedAt?: number;
+  /** operator evidence: a CCTV recording kept on the operator's NVR, shared by reference (video never goes into the database) */
+  clip?: { src: string; from: number; to: number; camera: string } | null;
 }
+
+export const CLIP_MIME = "video/x-slotify-clip";
 
 export interface AuditEntry {
   at: number;
@@ -78,6 +84,10 @@ export interface Complaint {
   /** someone asked the driver for more information and is waiting */
   awaitingInfo: { by: "owner" | "command"; note: string; at: number } | null;
   refund: { amount: number; approvedBy: string; at: number } | null;
+  /** CCTV stills, screenshots and shared recordings added by the parking operator (optional) */
+  ownerEvidence?: Attachment[];
+  /** Command Centre asked the operator for the full recording */
+  footageRequest?: { note: string; at: number; by: string; status: "pending" | "shared"; sharedAt?: number } | null;
   resolution: "refunded" | "no_refund" | "rejected" | null;
 }
 
@@ -90,7 +100,8 @@ export interface Actor {
 export type ComplaintAction =
   | "owner_review" | "forward" | "owner_reject" | "owner_request_info"
   | "user_reply"
-  | "accept" | "approve_refund" | "command_reject" | "command_request_evidence" | "close";
+  | "owner_add_evidence" | "owner_share_footage"
+  | "accept" | "approve_refund" | "command_reject" | "command_request_evidence" | "command_request_footage" | "close";
 
 export const ACTION_LABEL: Record<ComplaintAction, string> = {
   owner_review: "View Complaint",
@@ -98,16 +109,36 @@ export const ACTION_LABEL: Record<ComplaintAction, string> = {
   owner_reject: "Reject Complaint",
   owner_request_info: "Request More Information",
   user_reply: "Send Information",
+  owner_add_evidence: "Add Operator Evidence",
+  owner_share_footage: "Share CCTV Recording",
   accept: "Accept Investigation",
   approve_refund: "Approve Refund",
   command_reject: "Reject Complaint",
   command_request_evidence: "Request Additional Evidence",
+  command_request_footage: "Request Full CCTV Recording",
   close: "Close Case",
 };
 
 export const EVIDENCE_LIMITS = { maxFiles: 4, maxTotalChars: 700_000, maxPdfBytes: 400_000 };
 
+/** Operator evidence shares the document with the driver's, so it gets its own smaller budget. */
+export const OWNER_EVIDENCE_LIMITS = { maxFiles: 5, maxTotalChars: 260_000 };
+
 export class ComplaintError extends Error {}
+
+export function validateOwnerEvidence(existing: Attachment[], added: Attachment[]): Attachment[] {
+  const all = [...existing, ...added];
+  if (all.length > OWNER_EVIDENCE_LIMITS.maxFiles) throw new ComplaintError(`At most ${OWNER_EVIDENCE_LIMITS.maxFiles} operator evidence items.`);
+  for (const a of added) {
+    if (a.mime === CLIP_MIME) {
+      if (!a.clip || !(a.clip.to > a.clip.from)) throw new ComplaintError("Recording reference is incomplete.");
+      continue;
+    }
+    if (!/^image\//.test(a.mime) && a.mime !== "application/pdf") throw new ComplaintError(`${a.name}: only images, PDFs and CCTV recordings are allowed.`);
+  }
+  if (all.reduce((n, a) => n + a.dataUrl.length, 0) > OWNER_EVIDENCE_LIMITS.maxTotalChars) throw new ComplaintError("Operator evidence is too large in total. Use fewer or smaller stills.");
+  return all;
+}
 
 export function validateAttachments(existing: Attachment[], added: Attachment[]): Attachment[] {
   const all = [...existing, ...added];
@@ -166,11 +197,14 @@ export function allowedActions(c: Complaint, a: Actor): ComplaintAction[] {
   if (a.role === "owner") {
     if (c.ownerUid !== a.id) return [];
     if (c.status === "submitted" || c.status === "under_owner_review") {
-      const out: ComplaintAction[] = ["forward", "owner_reject"];
+      const out: ComplaintAction[] = ["forward", "owner_reject", "owner_add_evidence"];
       if (!c.awaitingInfo) out.push("owner_request_info");
       return out;
     }
-    return [];
+    // after forwarding the operator can still add stills, and must answer a recording request
+    const out: ComplaintAction[] = ["owner_add_evidence"];
+    if (c.footageRequest?.status === "pending") out.push("owner_share_footage");
+    return out;
   }
   if (a.role === "driver") return c.userId === a.id && c.awaitingInfo ? ["user_reply"] : [];
   // command centre
@@ -179,7 +213,9 @@ export function allowedActions(c: Complaint, a: Actor): ComplaintAction[] {
     const out: ComplaintAction[] = ["command_reject"];
     if (!c.awaitingInfo) {
       if (!c.refund) out.unshift("approve_refund");
-      out.push("command_request_evidence", "close");
+      out.push("command_request_evidence");
+      if (c.ownerUid !== PUBLIC_OWNER_UID && c.footageRequest?.status !== "pending") out.push("command_request_footage");
+      out.push("close");
     }
     // a refund already paid can't be "rejected" afterwards: close the case instead
     return c.refund ? out.filter((x) => x !== "command_reject") : out;
@@ -193,7 +229,7 @@ export interface ActionPayload {
   attachments?: Attachment[];
 }
 
-const NEED_NOTE: ComplaintAction[] = ["owner_reject", "owner_request_info", "command_reject", "command_request_evidence"];
+const NEED_NOTE: ComplaintAction[] = ["owner_reject", "owner_request_info", "command_reject", "command_request_evidence", "command_request_footage"];
 
 /** Returns the next version of the complaint. Throws ComplaintError if the actor isn't allowed. Never mutates `c`. */
 export function applyAction(c: Complaint, action: ComplaintAction, a: Actor, p: ActionPayload, now: number): Complaint {
@@ -213,8 +249,26 @@ export function applyAction(c: Complaint, action: ComplaintAction, a: Actor, p: 
   switch (action) {
     case "owner_review":
       return next("under_owner_review", entry("Owner Reviewed", "under_owner_review"));
-    case "forward":
-      return next("forwarded", entry("Forwarded To Command Centre", "forwarded", note), { ownerRemarks: note || c.ownerRemarks, awaitingInfo: null });
+    case "forward": {
+      const added = p.attachments ?? [];
+      const ownerEvidence = validateOwnerEvidence(c.ownerEvidence ?? [], added);
+      const n = [note, added.length ? `${added.length} evidence item(s) attached` : "", ownerEvidence.length ? "" : "no operator evidence"].filter(Boolean).join(" · ");
+      return next("forwarded", entry("Forwarded To Command Centre", "forwarded", n), { ownerRemarks: note || c.ownerRemarks, awaitingInfo: null, ownerEvidence });
+    }
+    case "owner_add_evidence": {
+      const added = p.attachments ?? [];
+      if (!added.length) throw new ComplaintError("Attach a CCTV still, screenshot or file.");
+      const ownerEvidence = validateOwnerEvidence(c.ownerEvidence ?? [], added);
+      return next(c.status, entry("Operator Evidence Added", c.status, [added.map((a) => a.name).join(", "), note].filter(Boolean).join(" · ")), { ownerEvidence });
+    }
+    case "owner_share_footage": {
+      const added = p.attachments ?? [];
+      if (!added.some((a) => a.mime === CLIP_MIME)) throw new ComplaintError("Choose the recording to share.");
+      const ownerEvidence = validateOwnerEvidence(c.ownerEvidence ?? [], added);
+      return next(c.status, entry("CCTV Recording Shared", c.status, [added.map((a) => a.name).join(", "), note].filter(Boolean).join(" · ")), { ownerEvidence, footageRequest: { ...c.footageRequest!, status: "shared", sharedAt: now } });
+    }
+    case "command_request_footage":
+      return next(c.status, entry("Full CCTV Recording Requested From Operator", c.status, note), { footageRequest: { note, at: now, by: a.name, status: "pending" } });
     case "owner_reject":
       return next("rejected", entry("Rejected By Owner", "rejected", note), { ownerRemarks: note, resolution: "rejected", awaitingInfo: null });
     case "owner_request_info":

@@ -120,8 +120,29 @@ const t = async (name: string, fn: () => Promise<void> | void) => { try { await 
     const { store } = await setup();
     const c = await file(store);
     await complaintAction(store, c.id, owner, "forward", {});
-    assert.deepEqual(allowedActions((await store.get<Complaint>("complaints", c.id))!, owner), []);
+    // after forwarding the operator may only add evidence (no decisions)
+    assert.deepEqual(allowedActions((await store.get<Complaint>("complaints", c.id))!, owner), ["owner_add_evidence"]);
     await rej(complaintAction(store, c.id, owner, "close", {}), /isn't available/);
+  });
+  await t("operator attaches a CCTV still when forwarding; Command Centre requests and receives the recording", async () => {
+    const { store } = await setup();
+    const c = await file(store);
+    const still = { name: "CAM-01 still.jpg", mime: "image/jpeg", size: 10, dataUrl: "data:image/jpeg;base64,AAAA", capturedAt: c.incidentAt };
+    let n = await complaintAction(store, c.id, owner, "forward", { note: "Gate camera shows a different car", attachments: [still] });
+    assert.equal(n.ownerEvidence?.length, 1);
+    const cmd = { id: "cmd1", name: "R. Meenakshi", role: "command" as const };
+    await complaintAction(store, c.id, cmd, "accept", {});
+    await rej(complaintAction(store, c.id, cmd, "command_request_footage", {}), /note/);
+    n = await complaintAction(store, c.id, cmd, "command_request_footage", { note: "Full gate video 10 min around the charge" });
+    assert.equal(n.footageRequest?.status, "pending");
+    assert.ok(!allowedActions(n, cmd).includes("command_request_footage"));
+    assert.ok(allowedActions(n, owner).includes("owner_share_footage"));
+    await rej(complaintAction(store, c.id, owner, "owner_share_footage", { attachments: [still] }), /recording/);
+    const clip = { name: "CAM-01 recording.clip", mime: "video/x-slotify-clip", size: 0, dataUrl: "", clip: { src: "/feeds/lot-bays.mp4", from: c.incidentAt - 300000, to: c.incidentAt + 300000, camera: "CAM-01" } };
+    n = await complaintAction(store, c.id, owner, "owner_share_footage", { attachments: [clip] });
+    assert.equal(n.footageRequest?.status, "shared");
+    assert.equal(n.ownerEvidence?.length, 2);
+    assert.ok(!allowedActions(n, owner).includes("owner_share_footage"));
   });
   await t("rejections need a note", async () => {
     const { store } = await setup();

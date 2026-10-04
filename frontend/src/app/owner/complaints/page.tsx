@@ -51,7 +51,7 @@ export default function OwnerComplaints() {
             )}
             {shown.map((c) => (
               <tr key={c.id}>
-                <td className="px-4 py-3 font-mono text-xs font-bold">{c.complaintId}{c.awaitingInfo && <span className="block font-sans text-[11px] font-semibold text-status-reserved">Waiting for driver</span>}</td>
+                <td className="px-4 py-3 font-mono text-xs font-bold">{c.complaintId}{c.awaitingInfo && <span className="block font-sans text-[11px] font-semibold text-status-reserved">Waiting for driver</span>}{c.footageRequest?.status === "pending" && <span className="block font-sans text-[11px] font-semibold text-status-occupied">Command Centre wants CCTV recording</span>}</td>
                 <td className="px-4 py-3 font-display font-bold tracking-wider">{c.vehicleNumber}</td>
                 <td className="px-4 py-3 font-mono text-xs">{c.transactionId}</td>
                 <td className="px-4 py-3">{c.parkingLocation}</td>

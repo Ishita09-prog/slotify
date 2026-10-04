@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, ExternalLink, FileText, Loader2, Paperclip, X } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, ExternalLink, FileText, Film, Loader2, Paperclip, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import { CCButton, Panel } from "@/components/command/ui";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { complaintAction, findRelatedBookings, type RelatedBooking } from "@/lib/live/complaint-service";
 import {
-  ACTION_LABEL, allowedActions, EVIDENCE_LIMITS, STATUS_LABEL, TYPE_LABEL, validateAttachments,
+  ACTION_LABEL, allowedActions, CLIP_MIME, EVIDENCE_LIMITS, OWNER_EVIDENCE_LIMITS, STATUS_LABEL, TYPE_LABEL, validateAttachments, validateOwnerEvidence,
   type Actor, type Attachment, type Complaint, type ComplaintAction, type ComplaintStatus,
 } from "@/lib/live/complaints";
 import { useLive } from "@/lib/live/provider";
-import { fmtDateTime } from "@/lib/live/time";
+import { fmtDateTime, fmtTime } from "@/lib/live/time";
 import { cn, formatINR } from "@/lib/utils";
 
 /* Shared pieces for the FASTag fraud-complaint workflow (driver, operator and Command Centre screens). */
@@ -103,12 +103,13 @@ export async function readEvidence(file: File): Promise<Attachment> {
 }
 
 export async function openAttachment(a: Attachment) {
+  if (a.clip) return void window.open(a.clip.src, "_blank", "noopener");
   const blob = await (await fetch(a.dataUrl)).blob();
   window.open(URL.createObjectURL(blob), "_blank", "noopener");
 }
 
 /** File picker + chips. Parent owns the list. */
-export function EvidencePicker({ value, onChange, variant = "app" }: { value: Attachment[]; onChange: (a: Attachment[]) => void; variant?: Variant }) {
+export function EvidencePicker({ value, onChange, variant = "app", owner = false }: { value: Attachment[]; onChange: (a: Attachment[]) => void; variant?: Variant; owner?: boolean }) {
   const ref = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const add = async (files: FileList | null) => {
@@ -117,7 +118,7 @@ export function EvidencePicker({ value, onChange, variant = "app" }: { value: At
     try {
       const read: Attachment[] = [];
       for (const f of Array.from(files)) read.push(await readEvidence(f));
-      onChange(validateAttachments(value, read));
+      onChange(owner ? validateOwnerEvidence(value, read) : validateAttachments(value, read));
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -129,14 +130,14 @@ export function EvidencePicker({ value, onChange, variant = "app" }: { value: At
     <div className="space-y-2">
       <input ref={ref} type="file" multiple accept="image/*,application/pdf" aria-label="Evidence upload" className="sr-only" onChange={(e) => void add(e.target.files)} />
       <button type="button" onClick={() => ref.current?.click()} disabled={busy} className={cn("flex w-full items-center justify-center gap-2 rounded-lg border border-dashed px-3 py-4 text-sm font-medium", V[variant].line, V[variant].dim, "hover:text-foreground")}>
-        {busy ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />} Add photo or PDF
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <Paperclip className="size-4" />} {owner ? "Upload screenshot or file" : "Add photo or PDF"}
       </button>
-      <p className={cn("text-[11px]", V[variant].dim)}>Images and PDFs only · up to {EVIDENCE_LIMITS.maxFiles} files · PDFs under {Math.round(EVIDENCE_LIMITS.maxPdfBytes / 1000)} KB (photos are shrunk automatically)</p>
+      {!owner && <p className={cn("text-[11px]", V[variant].dim)}>Images and PDFs only · up to {EVIDENCE_LIMITS.maxFiles} files · PDFs under {Math.round(EVIDENCE_LIMITS.maxPdfBytes / 1000)} KB (photos are shrunk automatically)</p>}
       {value.length > 0 && (
         <ul className="flex flex-wrap gap-2">
           {value.map((a, i) => (
             <li key={i} className={cn("flex items-center gap-2 rounded-lg border px-2 py-1 text-xs", V[variant].line)}>
-              <FileText className="size-3.5" /> <span className="max-w-40 truncate">{a.name}</span>
+              {a.clip ? <Film className="size-3.5" /> : <FileText className="size-3.5" />} <span className="max-w-48 truncate">{a.name}</span>
               <button type="button" aria-label={`Remove ${a.name}`} onClick={() => onChange(value.filter((_, j) => j !== i))}><X className="size-3.5" /></button>
             </li>
           ))}
@@ -150,7 +151,9 @@ export function EvidenceList({ list, variant }: { list: Attachment[]; variant: V
   if (!list.length) return <p className={cn("text-sm", V[variant].dim)}>No evidence uploaded.</p>;
   return (
     <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {list.map((a, i) => (
+      {list.map((a, i) => a.clip ? (
+        <li key={i} className="col-span-2 sm:col-span-3"><ClipView a={a} variant={variant} /></li>
+      ) : (
         <li key={i}>
           <button type="button" onClick={() => void openAttachment(a)} className={cn("group flex w-full flex-col overflow-hidden rounded-lg border text-left", V[variant].line)}>
             {a.mime.startsWith("image/") ? (
@@ -159,11 +162,166 @@ export function EvidenceList({ list, variant }: { list: Attachment[]; variant: V
             ) : (
               <span className={cn("grid h-24 place-items-center", V[variant].soft)}><FileText className="size-8" /></span>
             )}
-            <span className="flex items-center justify-between gap-1 px-2 py-1 text-[11px]"><span className="truncate">{a.name}</span><ExternalLink className="size-3 shrink-0 opacity-60" /></span>
+            <span className="flex items-center justify-between gap-1 px-2 py-1 text-[11px]"><span className="truncate">{a.name}{a.capturedAt ? ` · ${fmtTime(a.capturedAt)}` : ""}</span><ExternalLink className="size-3 shrink-0 opacity-60" /></span>
           </button>
         </li>
       ))}
     </ul>
+  );
+}
+
+/* --------------------------- operator CCTV evidence --------------------------- */
+
+/** The operator's recorded bay camera (demo NVR clip). Real deployment: the NVR's playback API for that camera and time. */
+const NVR = { src: "/feeds/lot-bays.mp4", camera: "CAM-01 · Bay camera" };
+
+/** Grabs the CCTV frame at camera time `at` and stamps it with camera, time and lot, like an NVR export. */
+export async function captureStill(at: number, lot: string): Promise<Attachment> {
+  const v = document.createElement("video");
+  v.muted = true;
+  v.preload = "auto";
+  v.playsInline = true;
+  v.src = v.canPlayType("video/webm") ? NVR.src.replace(/\.mp4$/, ".webm") : NVR.src;
+  await new Promise<void>((res, rej) => {
+    const to = window.setTimeout(() => rej(new Error("Camera recording didn't load. Try again.")), 15000);
+    v.onloadeddata = () => { window.clearTimeout(to); res(); };
+    v.onerror = () => { window.clearTimeout(to); rej(new Error("Camera recording unavailable.")); };
+  });
+  v.currentTime = (at / 1000) % Math.max(1, v.duration - 0.2);
+  await new Promise<void>((res) => { v.onseeked = () => res(); window.setTimeout(res, 4000); });
+  const W = 960, H = Math.round((W * v.videoHeight) / Math.max(1, v.videoWidth));
+  const cv = document.createElement("canvas");
+  cv.width = W;
+  cv.height = H;
+  const ctx = cv.getContext("2d")!;
+  ctx.drawImage(v, 0, 0, W, H);
+  ctx.fillStyle = "rgba(0,0,0,0.65)";
+  ctx.fillRect(0, 0, W, 30);
+  ctx.fillRect(0, H - 26, W, 26);
+  ctx.font = "700 15px ui-monospace, monospace";
+  ctx.fillStyle = "#fff";
+  ctx.fillText(`● ${NVR.camera}`, 10, 20);
+  const ts = `${fmtDateTime(at)} IST`;
+  ctx.fillText(ts, W - ctx.measureText(ts).width - 10, 20);
+  ctx.font = "600 12px ui-monospace, monospace";
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  ctx.fillText(`${lot} · operator NVR export · Slotify`, 10, H - 9);
+  const dataUrl = cv.toDataURL("image/jpeg", 0.6);
+  return { name: `CCTV still ${fmtTime(at).replace(/\s/g, "")}.jpg`, mime: "image/jpeg", size: Math.round(dataUrl.length * 0.75), dataUrl, capturedAt: at };
+}
+
+/** Recording shared by reference: the video stays on the operator's NVR; the case stores which camera and time range. */
+export function clipEvidence(at: number, minutes: number): Attachment {
+  const from = at - minutes * 60_000, to = at + minutes * 60_000;
+  return { name: `${NVR.camera} recording ${fmtTime(from)}–${fmtTime(to)}`, mime: CLIP_MIME, size: 0, dataUrl: "", capturedAt: at, clip: { src: NVR.src, from, to, camera: NVR.camera } };
+}
+
+function ClipView({ a, variant }: { a: Attachment; variant: Variant }) {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [t, setT] = useState(a.clip!.from);
+  const onTime = () => {
+    const v = ref.current;
+    if (v?.duration) setT(a.clip!.from + (v.currentTime / v.duration) * (a.clip!.to - a.clip!.from));
+  };
+  return (
+    <div className={cn("overflow-hidden rounded-lg border", V[variant].line)}>
+      <div className="relative bg-black">
+        <video ref={ref} controls muted playsInline onTimeUpdate={onTime} className="max-h-72 w-full">
+          <source src={a.clip!.src.replace(/\.mp4$/, ".webm")} type="video/webm" />
+          <source src={a.clip!.src} type="video/mp4" />
+        </video>
+        <span className="pointer-events-none absolute left-2 top-2 rounded bg-black/70 px-2 py-0.5 font-mono text-[11px] text-white">● {a.clip!.camera} · {fmtDateTime(t)}</span>
+      </div>
+      <p className="flex items-center gap-1.5 px-2 py-1.5 text-[11px]"><Video className="size-3.5" /> {a.name} · shared from the operator&apos;s NVR</p>
+    </div>
+  );
+}
+
+const OFFSETS = [-5, -2, 0, 2, 5];
+
+/** Operator adds CCTV stills / screenshots (optional) and answers a Command Centre request for the full recording. */
+export function OwnerEvidencePanel({ c, actor }: { c: Complaint; actor: Actor }) {
+  const live = useLive();
+  const allowed = allowedActions(c, actor);
+  const [staged, setStaged] = useState<Attachment[]>([]);
+  const [offset, setOffset] = useState(0);
+  const [mins, setMins] = useState(5);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  if (!allowed.includes("owner_add_evidence") && !allowed.includes("owner_share_footage")) return null;
+  const ref = c.txnAt ?? c.incidentAt;
+  const have = c.ownerEvidence ?? [];
+
+  const grab = async () => {
+    setBusy("grab");
+    try {
+      const s = await captureStill(ref + offset * 60_000, c.parkingLocation);
+      setStaged(validateOwnerEvidence([...have, ...staged], [s]).slice(have.length));
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const send = async (action: "owner_add_evidence" | "owner_share_footage", items: Attachment[]) => {
+    if (!live.store) return;
+    setBusy(action);
+    try {
+      await complaintAction(live.store, c.id, actor, action, { attachments: items, note });
+      toast.success(action === "owner_share_footage" ? "Recording shared with the Command Centre" : "Evidence added to the case");
+      setStaged([]);
+      setNote("");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const forwarded = c.status !== "submitted" && c.status !== "under_owner_review";
+
+  return (
+    <Card className="space-y-4 p-4">
+      {allowed.includes("owner_share_footage") && c.footageRequest && (
+        <div className="space-y-3 rounded-xl border border-status-reserved/50 bg-status-reserved/10 p-3">
+          <p className="flex items-start gap-2 text-sm"><AlertTriangle className="mt-0.5 size-4 shrink-0 text-status-reserved" /><span><b>Command Centre ({c.footageRequest.by}) asked for the full recording:</b> {c.footageRequest.note}</span></p>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="text-muted-foreground">Share {NVR.camera}</span>
+            {[5, 10, 15].map((m) => (
+              <button key={m} onClick={() => setMins(m)} className={cn("rounded-full border px-3 py-1 text-xs font-semibold", mins === m ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground")}>±{m} min</button>
+            ))}
+            <span className="text-xs text-muted-foreground">{fmtTime(ref - mins * 60_000)} – {fmtTime(ref + mins * 60_000)}</span>
+          </div>
+          <Button disabled={!!busy} onClick={() => void send("owner_share_footage", [clipEvidence(ref, mins)])}>{busy === "owner_share_footage" ? <Loader2 className="animate-spin" /> : <Film />} Share recording</Button>
+        </div>
+      )}
+
+      {allowed.includes("owner_add_evidence") && (
+        <div className="space-y-3">
+          <div>
+            <h2 className="font-display text-base font-bold">Your evidence <span className="text-xs font-medium text-muted-foreground">(optional)</span></h2>
+            <p className="text-xs text-muted-foreground">Charge time {fmtDateTime(ref)}. Grab the CCTV frame from that moment or upload a screenshot. {forwarded ? "It's added to the case the Command Centre is investigating." : "Add it before forwarding so the Command Centre sees it straight away."}</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {OFFSETS.map((o) => (
+              <button key={o} onClick={() => setOffset(o)} className={cn("rounded-full border px-2.5 py-1 text-xs font-semibold tabular-nums", offset === o ? "border-primary bg-primary text-primary-foreground" : "text-muted-foreground")}>{o === 0 ? "At charge time" : `${o > 0 ? "+" : "−"}${Math.abs(o)} min`}</button>
+            ))}
+          </div>
+          <Button variant="outline" disabled={!!busy} onClick={() => void grab()}>{busy === "grab" ? <Loader2 className="animate-spin" /> : <Camera />} Capture CCTV still at {fmtTime(ref + offset * 60_000)}</Button>
+          {staged.some((a) => a.mime.startsWith("image/")) && (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {staged.filter((a) => a.mime.startsWith("image/")).map((a, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={i} src={a.dataUrl} alt={a.name} className="w-full rounded-lg border" />
+              ))}
+            </div>
+          )}
+          <EvidencePicker value={staged} onChange={setStaged} owner />
+          <textarea aria-label="Evidence note" rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note for the Command Centre, e.g. 'Gate camera shows a white hatchback, not the driver's SUV'" className={V.app.field} />
+          <p className="text-[11px] text-muted-foreground">Up to {OWNER_EVIDENCE_LIMITS.maxFiles} items. Full recordings stay on your NVR until the Command Centre asks for them.</p>
+          <Button disabled={!!busy || !staged.length} onClick={() => void send("owner_add_evidence", staged)}>{busy === "owner_add_evidence" && <Loader2 className="animate-spin" />} Add {staged.length || ""} to case</Button>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -224,9 +382,21 @@ export function ComplaintDetail({ c, viewer, variant = "app" }: { c: Complaint; 
         <p className="mt-1 whitespace-pre-wrap text-sm">{c.description}</p>
       </Box>
 
-      <Box variant={variant} title="Evidence">
+      <Box variant={variant} title={viewer === "driver" ? "Evidence" : "Driver's evidence"}>
         <EvidenceList list={c.attachments} variant={variant} />
       </Box>
+
+      {viewer !== "driver" && (
+        <Box variant={variant} title="Parking operator's evidence">
+          {c.footageRequest && (
+            <p className={cn("mb-3 flex items-start gap-2 rounded-lg border p-2.5 text-sm", c.footageRequest.status === "pending" ? "border-status-reserved/50 bg-status-reserved/10" : "border-status-available/40 bg-status-available/10")}>
+              <Film className="mt-0.5 size-4 shrink-0" />
+              <span>{c.footageRequest.status === "pending" ? <><b>Full recording requested</b> from the operator by {c.footageRequest.by} · {fmtDateTime(c.footageRequest.at)}: {c.footageRequest.note}</> : <><b>Recording shared</b> by the operator · {fmtDateTime(c.footageRequest.sharedAt ?? c.updatedAt)}</>}</span>
+            </p>
+          )}
+          {(c.ownerEvidence ?? []).length ? <EvidenceList list={c.ownerEvidence!} variant={variant} /> : <p className={cn("text-sm", dim)}>{viewer === "owner" ? "You haven't added any. Optional: CCTV stills or screenshots help the Command Centre decide faster." : "The operator didn't attach any. Use “Request Full CCTV Recording” if you need it."}</p>}
+        </Box>
+      )}
 
       {viewer !== "driver" && (
         <Box variant={variant} title="Investigation">
@@ -298,12 +468,13 @@ export function ComplaintDetail({ c, viewer, variant = "app" }: { c: Complaint; 
 /* ------------------------------- actions -------------------------------- */
 
 const DANGER: ComplaintAction[] = ["owner_reject", "command_reject"];
-const NEEDS_NOTE: ComplaintAction[] = ["owner_reject", "owner_request_info", "command_reject", "command_request_evidence"];
+const NEEDS_NOTE: ComplaintAction[] = ["owner_reject", "owner_request_info", "command_reject", "command_request_evidence", "command_request_footage"];
 const NOTE_HINT: Partial<Record<ComplaintAction, string>> = {
   owner_reject: "Reason for rejecting (required)",
   owner_request_info: "What do you need from the driver? (required)",
   command_reject: "Reason for rejecting (required)",
   command_request_evidence: "What evidence is needed? (required)",
+  command_request_footage: "Which camera / time range do you need from the operator? (required)",
 };
 
 /** Decision bar. Only buttons the actor may use right now are shown; the same rules are enforced again on save. */
@@ -319,7 +490,7 @@ export function ComplaintActions({
   const [note, setNote] = useState("");
   const [amount, setAmount] = useState<string>(c.txnAmount != null ? String(c.txnAmount) : "");
   const [busy, setBusy] = useState<ComplaintAction | null>(null);
-  const actions = allowedActions(c, actor).filter((a) => a !== "owner_review");
+  const actions = allowedActions(c, actor).filter((a) => a !== "owner_review" && a !== "owner_add_evidence" && a !== "owner_share_footage");
   if (!actions.length) return null;
   const Btn = variant === "cc" ? CCButton : Button;
 
