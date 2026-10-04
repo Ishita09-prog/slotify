@@ -34,13 +34,15 @@ export function PortalShell({ children, back = true }: { children: React.ReactNo
   return (
     <div className="portal-root relative min-h-dvh overflow-hidden text-slate-100">
       {/* Optional hero video: drop a clip at frontend/public/media/portal.mp4 (hidden automatically if missing) */}
-      <video aria-hidden autoPlay muted loop playsInline preload="auto" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-50" onError={(e) => (e.currentTarget.style.display = "none")}>
+      <video aria-hidden autoPlay muted loop playsInline preload="auto" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-100 [filter:brightness(1.35)_saturate(1.25)_contrast(1.05)]" onError={(e) => (e.currentTarget.style.display = "none")}>
+        <source src="/media/portal.webm" type="video/webm" />
         <source src="/media/portal.mp4" type="video/mp4" onError={(e) => ((e.currentTarget.parentElement as HTMLVideoElement).style.display = "none")} />
       </video>
-      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070b16]/70 via-[#070b16]/40 to-[#070b16]/90" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_60%_58%_at_50%_48%,rgba(7,11,22,.66),rgba(7,11,22,.2)_70%,transparent)]" />
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070b16]/35 via-transparent to-[#070b16]/60" />
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 -top-40 size-[34rem] rounded-full bg-blue-600/25 blur-[120px]" />
-        <div className="absolute -right-32 top-1/3 size-[28rem] rounded-full bg-violet-600/20 blur-[120px]" />
+        <div className="absolute -left-40 -top-40 size-[34rem] rounded-full bg-blue-600/15 blur-[120px]" />
+        <div className="absolute -right-32 top-1/3 size-[28rem] rounded-full bg-violet-600/12 blur-[120px]" />
         <div className="absolute bottom-[-12rem] left-1/3 size-[30rem] rounded-full bg-emerald-500/10 blur-[120px]" />
       </div>
       <div ref={glow} aria-hidden className="pointer-events-none fixed left-0 top-0 hidden size-[400px] rounded-full bg-sky-400/10 blur-3xl transition-transform duration-150 ease-out md:block" />
