@@ -71,6 +71,7 @@ export function PortalChooser() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/80">{city.authority}</p>
         <h1 className="portal-title mt-3 text-4xl font-semibold sm:text-6xl">Who&apos;s signing in?</h1>
         <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400">Each portal shows only what that role is allowed to see. Every sign-in is written to the audit trail.</p>
+        <Link href="/how-it-works" className="mt-5 inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-400/10 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-400/20">▶ How Slotify works · 3D walkthrough</Link>
       </motion.div>
       <div className="mx-auto mt-10 grid max-w-3xl gap-3 sm:grid-cols-2">
         {PORTALS.map((p, i) => {
