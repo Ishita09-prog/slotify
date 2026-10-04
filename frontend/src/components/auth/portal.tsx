@@ -33,6 +33,11 @@ export function PortalShell({ children, back = true }: { children: React.ReactNo
   }, []);
   return (
     <div className="portal-root relative min-h-dvh overflow-hidden text-slate-100">
+      {/* Optional hero video: drop a clip at frontend/public/media/portal.mp4 (hidden automatically if missing) */}
+      <video aria-hidden autoPlay muted loop playsInline preload="auto" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30" onError={(e) => (e.currentTarget.style.display = "none")}>
+        <source src="/media/portal.mp4" type="video/mp4" onError={(e) => ((e.currentTarget.parentElement as HTMLVideoElement).style.display = "none")} />
+      </video>
+      <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#070b16]/70 via-[#070b16]/40 to-[#070b16]/90" />
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="absolute -left-40 -top-40 size-[34rem] rounded-full bg-blue-600/25 blur-[120px]" />
         <div className="absolute -right-32 top-1/3 size-[28rem] rounded-full bg-violet-600/20 blur-[120px]" />
@@ -69,7 +74,7 @@ export function PortalChooser() {
     <PortalShell back={false}>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-3xl pt-6 text-center sm:pt-12">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-300/80">{city.authority}</p>
-        <h1 className="portal-title mt-3 text-4xl font-semibold sm:text-6xl">Who&apos;s signing in?</h1>
+        <h1 className="portal-title mt-3 text-4xl font-light tracking-tight sm:text-6xl">Who&apos;s signing in?</h1>
         <p className="mx-auto mt-4 max-w-xl text-[15px] leading-relaxed text-slate-400">Each portal shows only what that role is allowed to see. Every sign-in is written to the audit trail.</p>
         <Link href="/how-it-works" className="mt-5 inline-flex items-center gap-2 rounded-full border border-sky-400/40 bg-sky-400/10 px-4 py-2 text-sm font-semibold text-sky-200 transition hover:bg-sky-400/20">▶ How Slotify works · 3D walkthrough</Link>
       </motion.div>

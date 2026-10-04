@@ -3,6 +3,7 @@ import "@fontsource-variable/archivo/wdth.css";
 import "@fontsource-variable/public-sans";
 import "./globals.css";
 import { Providers } from "@/components/layout/providers";
+import { Ambient } from "@/components/fx/ambient";
 
 export const metadata: Metadata = {
   title: { default: "Slotify — Smart Parking Command Platform", template: "%s · Slotify" },
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-dvh font-sans">
         <Providers>{children}</Providers>
+        <Ambient />
       </body>
     </html>
   );

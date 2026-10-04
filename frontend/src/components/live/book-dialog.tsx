@@ -15,6 +15,7 @@ import { UserError } from "@/lib/live/store";
 import { fmtDate, fmtDateTime, fmtTime, windowHours } from "@/lib/live/time";
 import { quotePlan, type PlanQuote } from "@/lib/live/plans";
 import { PlanBreakdown } from "@/components/live/plan-picker";
+import { GATEWAY_MS, PayGateway } from "@/components/fx/pay-gateway";
 import { bikeRate, coverFor, type Bay, type LiveBooking, type LiveLot, type PayMethod, type Vehicle } from "@/lib/live/types";
 import { cn, formatINR, googleMapsDirectionsUrl } from "@/lib/utils";
 
@@ -100,7 +101,7 @@ export function BookDialog({
     if (!live.store || !live.account) return;
     setStep("busy");
     try {
-      await new Promise((r) => setTimeout(r, 700));
+      await new Promise((r) => setTimeout(r, GATEWAY_MS));
       const b = await book(live.store, live.account, { lot, bayId: bay.id, req, vehicle, method, arriveInMin, seed });
       booked.current = true;
       setDone(b);
@@ -207,10 +208,10 @@ export function BookDialog({
           )}
 
           {step === "busy" && (
-            <motion.div key="b" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center py-10 text-center">
-              <Loader2 className="size-10 animate-spin text-primary" />
-              <DialogTitle className="mt-4">Confirming…</DialogTitle>
-              <DialogDescription className="mt-1">Writing your booking to the database</DialogDescription>
+            <motion.div key="b" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center text-center">
+              <DialogTitle className="sr-only">Processing payment</DialogTitle>
+              <DialogDescription className="sr-only">Authorising your payment</DialogDescription>
+              <PayGateway amount={charge} method={method} />
             </motion.div>
           )}
 
